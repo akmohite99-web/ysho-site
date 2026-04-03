@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Heart,
   Sparkles,
@@ -13,9 +13,12 @@ import {
   Star,
   Leaf,
   Droplets,
-  LogOut
+  LogOut,
+  ShoppingCart,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
+import PRODUCTS from "@/config/products";
 import heroGhee from "@/assets/hero-ghee.jpg";
 import a2Cow from "@/assets/a2-cow.jpg";
 import bilonaProcess from "@/assets/bilona-process.jpg";
@@ -27,6 +30,20 @@ import yshoPackaging from "@/assets/ysho-packaging-hero.png";
 
 const Index = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { addToCart, totalItems } = useCart();
+  const navigate = useNavigate();
+
+  const handleOrderNow = () => {
+    const product = PRODUCTS[0];
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      variant: product.variant,
+      price: product.price,
+      image: product.image,
+    });
+    navigate("/cart");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,6 +62,18 @@ const Index = () => {
               <a href="#contact" className="text-foreground hover:text-golden transition-colors">Contact</a>
             </div>
             <div className="flex items-center gap-3">
+              {/* Cart icon */}
+              <Button variant="ghost" size="sm" className="relative" asChild>
+                <Link to="/cart">
+                  <ShoppingCart className="w-5 h-5" />
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-golden text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {totalItems}
+                    </span>
+                  )}
+                </Link>
+              </Button>
+
               {isAuthenticated ? (
                 <>
                   <span className="hidden sm:inline text-sm font-medium text-golden">
@@ -59,7 +88,7 @@ const Index = () => {
                     <LogOut className="w-4 h-4" />
                     <span className="hidden sm:inline">Logout</span>
                   </Button>
-                  <Button variant="golden" size="sm">Order Now</Button>
+                  <Button variant="golden" size="sm" onClick={handleOrderNow}>Order Now</Button>
                 </>
               ) : (
                 <>
@@ -102,7 +131,7 @@ const Index = () => {
                 <p className="text-2xl font-bold text-golden">₹1,899/- <span className="text-sm text-muted-foreground font-normal">for 500ml (450g)</span></p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Button variant="hero" size="xl" className="animate-glow">
+                <Button variant="hero" size="xl" className="animate-glow" onClick={handleOrderNow}>
                   <Heart className="w-5 h-5 mr-2" />
                   Order Premium Ghee
                 </Button>

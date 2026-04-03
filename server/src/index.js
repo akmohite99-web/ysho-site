@@ -2,7 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./config/db');
-const authRoutes = require('./routes/auth');
+const authRoutes   = require('./routes/auth');
+const orderRoutes  = require('./routes/orders');
 const { errorHandler } = require('./middleware/errorHandler');
 
 connectDB();
@@ -23,7 +24,8 @@ app.use(
 app.use(express.json({ limit: '10kb' }));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
-app.use('/api/auth', authRoutes);
+app.use('/api/auth',   authRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.use(errorHandler);
 
