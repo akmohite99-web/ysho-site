@@ -113,7 +113,7 @@ const Register = () => {
             </div>
             <CardTitle className="text-3xl font-bold text-golden">Create Account</CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
-              Join the Ysho Amrut family
+              Join the Ysho A2 Desi Cow Bilona Ghee family
             </CardDescription>
           </CardHeader>
 
@@ -269,7 +269,7 @@ const Register = () => {
       </div>
 
       <footer className="py-4 text-center text-sm text-muted-foreground border-t border-border/30">
-        &copy; {new Date().getFullYear()} Ysho Amrut. All rights reserved.
+        &copy; {new Date().getFullYear()} Ysho A2 Desi Cow Bilona Ghee. All rights reserved.
       </footer>
     </div>
   );

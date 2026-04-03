@@ -1,7 +1,7 @@
 {
   "name": "ysho-server",
   "version": "1.0.0",
-  "description": "Ysho Amrut auth API server",
+  "description": "Ysho A2 Desi Cow Bilona Ghee auth API server",
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {

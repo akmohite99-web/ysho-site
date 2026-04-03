@@ -126,7 +126,7 @@ const Index = () => {
               <div className="relative rounded-2xl shadow-2xl overflow-hidden bg-gradient-to-br from-cream via-background to-golden/10 w-full max-w-xl lg:max-w-2xl xl:max-w-3xl scale-[0.8] origin-center">
                 <img 
                   src={yshoPackaging} 
-                  alt="Ysho Amrut A2 Desi Cow Bilona Ghee - Product box and jar packaging"
+                  alt="Ysho A2 Desi Cow Bilona Ghee - Product box and jar packaging"
                   className="relative rounded-2xl w-full h-auto object-contain mix-blend-darken"
                 />
               </div>
