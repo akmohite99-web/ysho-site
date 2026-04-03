@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 45 40% 98%;
+    --foreground: 30 25% 15%;
+
+    --card: 45 50% 96%;
+    --card-foreground: 30 25% 15%;
+
+    --popover: 45 50% 96%;
+    --popover-foreground: 30 25% 15%;
+
+    --primary: 35 85% 55%;
+    --primary-foreground: 45 40% 98%;
+
+    --secondary: 40 60% 85%;
+    --secondary-foreground: 30 25% 15%;
+
+    --muted: 42 45% 88%;
+    --muted-foreground: 30 15% 45%;
+
+    --accent: 38 75% 65%;
+    --accent-foreground: 30 25% 15%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 42 30% 88%;
+    --input: 42 30% 88%;
+    --ring: 35 85% 55%;
+
+    --radius: 0.75rem;
+
+    /* Premium ghee color palette */
+    --ysho-green: 142 45% 38%;
+    --golden: 45 95% 65%;
+    --golden-light: 48 90% 75%;
+    --golden-dark: 40 85% 45%;
+    --cream: 45 40% 95%;
+    --warm-brown: 30 35% 25%;
+    --sage: 90 25% 65%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--golden-light)), hsl(var(--golden)));
+    --gradient-warm: linear-gradient(180deg, hsl(var(--cream)), hsl(var(--background)));
+    --gradient-accent: linear-gradient(45deg, hsl(var(--accent)), hsl(var(--golden)));
+
+    /* Shadows */
+    --shadow-warm: 0 10px 40px -10px hsl(var(--golden) / 0.3);
+    --shadow-soft: 0 4px 20px -4px hsl(var(--warm-brown) / 0.1);
+
+    /* Animations */
+    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 30 15% 8%;
+    --foreground: 45 40% 95%;
+
+    --card: 30 20% 12%;
+    --card-foreground: 45 40% 95%;
+
+    --popover: 30 20% 12%;
+    --popover-foreground: 45 40% 95%;
+
+    --primary: 45 85% 60%;
+    --primary-foreground: 30 15% 8%;
+
+    --secondary: 35 25% 20%;
+    --secondary-foreground: 45 40% 95%;
+
+    --muted: 35 20% 18%;
+    --muted-foreground: 45 15% 65%;
+
+    --accent: 40 70% 55%;
+    --accent-foreground: 30 15% 8%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 35 20% 18%;
+    --input: 35 20% 18%;
+    --ring: 45 85% 60%;
+
+    /* Dark mode adjustments */
+    --golden: 45 80% 55%;
+    --golden-light: 48 75% 65%;
+    --golden-dark: 40 70% 35%;
+    --cream: 30 15% 12%;
+    --warm-brown: 45 40% 85%;
+    --sage: 90 15% 45%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
