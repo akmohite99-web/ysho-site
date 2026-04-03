@@ -106,8 +106,8 @@ const Index = () => {
                   <Heart className="w-5 h-5 mr-2" />
                   Order Premium Ghee
                 </Button>
-                <Button variant="premium" size="xl">
-                  Learn Our Process
+                <Button variant="premium" size="xl" asChild>
+                  <a href="#process">Learn Our Process</a>
                 </Button>
               </div>
               <div className="flex items-center gap-6">
