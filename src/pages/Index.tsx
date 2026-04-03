@@ -1,18 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Heart, 
-  Sparkles, 
-  Shield, 
-  Award, 
-  Phone, 
-  Mail, 
+import { Link } from "react-router-dom";
+import {
+  Heart,
+  Sparkles,
+  Shield,
+  Award,
+  Phone,
+  Mail,
   MapPin,
   Star,
   Leaf,
-  Droplets
+  Droplets,
+  LogOut
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import heroGhee from "@/assets/hero-ghee.jpg";
 import a2Cow from "@/assets/a2-cow.jpg";
 import bilonaProcess from "@/assets/bilona-process.jpg";
@@ -23,6 +26,8 @@ import labelPait from "@/assets/label-pait.png";
 import yshoPackaging from "@/assets/ysho-packaging-hero.png";
 
 const Index = () => {
+  const { user, isAuthenticated, logout } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -39,7 +44,34 @@ const Index = () => {
               <a href="#process" className="text-foreground hover:text-golden transition-colors">Process</a>
               <a href="#contact" className="text-foreground hover:text-golden transition-colors">Contact</a>
             </div>
-            <Button variant="golden" size="sm">Order Now</Button>
+            <div className="flex items-center gap-3">
+              {isAuthenticated ? (
+                <>
+                  <span className="hidden sm:inline text-sm font-medium text-golden">
+                    Hello, {user?.name.split(" ")[0]}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={logout}
+                    className="flex items-center gap-1"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">Logout</span>
+                  </Button>
+                  <Button variant="golden" size="sm">Order Now</Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to="/login">Login</Link>
+                  </Button>
+                  <Button variant="golden" size="sm" asChild>
+                    <Link to="/register">Register</Link>
+                  </Button>
+                </>
+              )}
+            </div>
           </nav>
         </div>
       </header>
@@ -55,7 +87,7 @@ const Index = () => {
               </Badge>
               <h1 className="text-5xl lg:text-6xl font-bold mb-2 leading-tight">
                 <span className="text-ysho-green">Ysho</span>{" "}
-                <span className="text-golden">Amrut</span>
+                <span className="text-golden">A2 Desi Cow Bilona Ghee</span>
               </h1>
               <p className="text-xl lg:text-2xl font-medium text-muted-foreground mb-6">
                 <span className="text-foreground">Pure </span>
@@ -334,13 +366,13 @@ const Index = () => {
       <footer className="py-12 bg-warm-brown text-cream">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h3 className="text-2xl font-bold text-golden mb-4">Ysho Amrut</h3>
+            <h3 className="text-2xl font-bold text-golden mb-4">Ysho A2 Desi Cow Bilona Ghee</h3>
             <p className="text-cream/80 mb-6 max-w-2xl mx-auto">
               Preserving traditional dairy wisdom while delivering the purest A2 Bilona Ghee 
               to your doorstep. Experience the taste of authentic heritage.
             </p>
             <div className="flex justify-center items-center gap-4 text-sm text-cream/60">
-              <p>&copy; 2024 Ysho Amrut. All rights reserved.</p>
+              <p>&copy; 2024 Ysho A2 Desi Cow Bilona Ghee. All rights reserved.</p>
               <div className="h-4 w-px bg-cream/30" />
               <p>Made with ❤️ for pure tradition</p>
             </div>
