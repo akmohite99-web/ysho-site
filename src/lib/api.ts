@@ -109,6 +109,21 @@ type AddressPayload = Omit<SavedAddress, "_id">;
 const authHeader = () => ({ Authorization: `Bearer ${getToken()}` });
 const jsonHeaders = () => ({ "Content-Type": "application/json", ...authHeader() });
 
+export const adminApi = {
+  getUsers: () =>
+    fetch(`${BASE}/admin/users`, { headers: { Authorization: `Bearer ${getToken()}` } }).then((r) => r.json()),
+
+  getOrders: () =>
+    fetch(`${BASE}/admin/orders`, { headers: { Authorization: `Bearer ${getToken()}` } }).then((r) => r.json()),
+
+  updateOrderStatus: (id: string, status: string) =>
+    fetch(`${BASE}/admin/orders/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ status }),
+    }).then((r) => r.json()),
+};
+
 export const userApi = {
   getProfile: () =>
     fetch(`${BASE}/users/profile`, { headers: authHeader() }).then((r) => r.json()),

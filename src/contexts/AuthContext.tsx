@@ -5,11 +5,13 @@ export interface AuthUser {
   name: string;
   email: string;
   phone?: string;
+  isAdmin?: boolean;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
   isLoading: boolean;
   login: (token: string, user: AuthUser) => void;
   logout: () => void;
@@ -64,6 +66,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       value={{
         user,
         isAuthenticated: !!user,
+        isAdmin: !!user?.isAdmin,
         isLoading,
         login,
         logout,

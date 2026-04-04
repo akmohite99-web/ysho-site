@@ -40,6 +40,7 @@ const userSchema = new mongoose.Schema(
       sparse: true,
     },
     addresses: { type: [savedAddressSchema], default: [] },
+    isAdmin:   { type: Boolean, default: false },
   },
   {
     timestamps: true,
