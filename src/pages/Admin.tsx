@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, ShoppingBag, LogOut } from "lucide-react";
+import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -56,6 +56,40 @@ const STATUS_COLORS: Record<string, string> = {
 
 const ORDER_STATUSES = ["pending", "paid", "processing", "shipped", "delivered", "failed", "cancelled"];
 
+// ── helpers ──────────────────────────────────────────────────────────────────
+const PAID_STATUSES = ["paid", "processing", "shipped", "delivered"];
+
+const startOf = (unit: "day" | "month") => {
+  const d = new Date();
+  if (unit === "day") { d.setHours(0, 0, 0, 0); }
+  else { d.setDate(1); d.setHours(0, 0, 0, 0); }
+  return d;
+};
+
+const fmt = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+
+// ── stat card ─────────────────────────────────────────────────────────────────
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  sub?: string;
+  iconBg?: string;
+}
+const StatCard = ({ icon, label, value, sub, iconBg = "bg-golden/10" }: StatCardProps) => (
+  <Card className="border-border/50">
+    <CardContent className="flex items-center gap-4 pt-6">
+      <div className={`p-3 rounded-full ${iconBg} shrink-0`}>{icon}</div>
+      <div>
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-2xl font-bold">{value}</p>
+        {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      </div>
+    </CardContent>
+  </Card>
+);
+
+// ── main ──────────────────────────────────────────────────────────────────────
 const Admin = () => {
   const { logout } = useAuth();
   const [users, setUsers]   = useState<AdminUser[]>([]);
@@ -79,11 +113,44 @@ const Admin = () => {
   const handleStatusChange = async (orderId: string, status: string) => {
     const result = await adminApi.updateOrderStatus(orderId, status);
     if (result.success) {
-      setOrders((prev) =>
-        prev.map((o) => (o._id === orderId ? { ...o, status } : o))
-      );
+      setOrders((prev) => prev.map((o) => (o._id === orderId ? { ...o, status } : o)));
     }
   };
+
+  // ── derived stats ─────────────────────────────────────────────────────────
+  const paidOrders     = orders.filter((o) => PAID_STATUSES.includes(o.status));
+  const totalRevenue   = paidOrders.reduce((s, o) => s + o.amount, 0);
+  const avgOrderValue  = paidOrders.length ? Math.round(totalRevenue / paidOrders.length) : 0;
+
+  const todayStart     = startOf("day");
+  const monthStart     = startOf("month");
+  const revenueToday   = paidOrders.filter((o) => new Date(o.createdAt) >= todayStart).reduce((s, o) => s + o.amount, 0);
+  const revenueMonth   = paidOrders.filter((o) => new Date(o.createdAt) >= monthStart).reduce((s, o) => s + o.amount, 0);
+  const ordersToday    = orders.filter((o) => new Date(o.createdAt) >= todayStart).length;
+  const newUsersMonth  = users.filter((u) => new Date(u.createdAt) >= monthStart).length;
+
+  // orders by status count
+  const statusCount = ORDER_STATUSES.reduce<Record<string, number>>((acc, s) => {
+    acc[s] = orders.filter((o) => o.status === s).length;
+    return acc;
+  }, {});
+
+  // top products by quantity
+  const productMap: Record<string, { name: string; variant: string; qty: number; revenue: number }> = {};
+  orders.forEach((o) => {
+    if (!PAID_STATUSES.includes(o.status)) return;
+    o.items.forEach((item) => {
+      const key = `${item.name}__${item.variant}`;
+      if (!productMap[key]) productMap[key] = { name: item.name, variant: item.variant, qty: 0, revenue: 0 };
+      productMap[key].qty     += item.quantity;
+      productMap[key].revenue += item.price * item.quantity;
+    });
+  });
+  const topProducts = Object.values(productMap).sort((a, b) => b.qty - a.qty).slice(0, 5);
+
+  // users with at least one order
+  const buyerIds = new Set(orders.map((o) => o.userId?.email));
+  const conversionRate = users.length ? Math.round((buyerIds.size / users.length) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cream via-background to-golden/10 flex flex-col">
@@ -104,32 +171,92 @@ const Admin = () => {
           <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
         )}
 
-        {/* Stats */}
+        {/* ── Stats row 1 ── */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <StatCard
+            icon={<IndianRupee className="w-6 h-6 text-golden" />}
+            label="Total Revenue"
+            value={fmt(totalRevenue)}
+            sub={`This month: ${fmt(revenueMonth)}`}
+          />
+          <StatCard
+            icon={<ShoppingBag className="w-6 h-6 text-golden" />}
+            label="Total Orders"
+            value={orders.length}
+            sub={`Today: ${ordersToday}`}
+          />
+          <StatCard
+            icon={<Users className="w-6 h-6 text-golden" />}
+            label="Total Users"
+            value={users.length}
+            sub={`New this month: ${newUsersMonth}`}
+          />
+          <StatCard
+            icon={<TrendingUp className="w-6 h-6 text-golden" />}
+            label="Avg Order Value"
+            value={fmt(avgOrderValue)}
+            sub={`Today's revenue: ${fmt(revenueToday)}`}
+          />
+        </div>
+
+        {/* ── Stats row 2 ── */}
         <div className="grid sm:grid-cols-2 gap-4 mb-8">
+          {/* Order status breakdown */}
           <Card className="border-border/50">
-            <CardContent className="flex items-center gap-4 pt-6">
-              <div className="p-3 rounded-full bg-golden/10">
-                <Users className="w-6 h-6 text-golden" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Users</p>
-                <p className="text-3xl font-bold">{users.length}</p>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-golden" /> Orders by Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {ORDER_STATUSES.map((s) => (
+                  <div key={s} className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[s]}`}>
+                    <span className="capitalize">{s}</span>
+                    <span className="font-bold">{statusCount[s]}</span>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
+
+          {/* Top products */}
           <Card className="border-border/50">
-            <CardContent className="flex items-center gap-4 pt-6">
-              <div className="p-3 rounded-full bg-golden/10">
-                <ShoppingBag className="w-6 h-6 text-golden" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Orders</p>
-                <p className="text-3xl font-bold">{orders.length}</p>
-              </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="w-4 h-4 text-golden" /> Top Products (by qty sold)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {topProducts.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No paid orders yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {topProducts.map((p, i) => (
+                    <div key={i} className="flex justify-between items-center text-sm">
+                      <span className="truncate">
+                        <span className="text-muted-foreground mr-1">#{i + 1}</span>
+                        {p.name}{" "}
+                        <span className="text-xs text-muted-foreground">({p.variant})</span>
+                      </span>
+                      <div className="flex gap-3 shrink-0 ml-2 text-xs text-muted-foreground">
+                        <span>{p.qty} units</span>
+                        <span className="text-golden font-medium">{fmt(p.revenue)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
+        {/* ── Conversion note ── */}
+        <p className="text-xs text-muted-foreground mb-6">
+          User conversion rate: <strong>{conversionRate}%</strong> ({buyerIds.size} of {users.length} users have placed an order)
+        </p>
+
+        {/* ── Tabs ── */}
         <Tabs defaultValue="orders">
           <TabsList className="mb-6">
             <TabsTrigger value="orders">Orders</TabsTrigger>
@@ -170,7 +297,7 @@ const Admin = () => {
                             <p className="text-xs text-muted-foreground">Order ID: {order._id}</p>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-bold text-golden">₹{order.amount.toLocaleString("en-IN")}</span>
+                            <span className="font-bold text-golden">{fmt(order.amount)}</span>
                             <Select
                               value={order.status}
                               onValueChange={(val) => handleStatusChange(order._id, val)}
@@ -194,7 +321,7 @@ const Admin = () => {
                           {order.items.map((item, i) => (
                             <div key={i} className="flex justify-between text-xs text-muted-foreground">
                               <span>{item.name} ({item.variant}) × {item.quantity}</span>
-                              <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
+                              <span>{fmt(item.price * item.quantity)}</span>
                             </div>
                           ))}
                         </div>
