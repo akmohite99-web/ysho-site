@@ -76,9 +76,9 @@ const Index = () => {
 
               {isAuthenticated ? (
                 <>
-                  <span className="hidden sm:inline text-sm font-medium text-golden">
+                  <Link to="/profile" className="hidden sm:inline text-sm font-medium text-golden hover:underline underline-offset-2">
                     Hello, {user?.name.split(" ")[0]}
-                  </span>
+                  </Link>
                   <Button
                     variant="outline"
                     size="sm"

@@ -90,3 +90,62 @@ export const orderApi = {
       headers: { Authorization: `Bearer ${getToken()}` },
     }).then((res) => res.json()),
 };
+
+export interface SavedAddress {
+  _id: string;
+  label: "home" | "work" | "other";
+  fullName: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+}
+
+type AddressPayload = Omit<SavedAddress, "_id">;
+
+const authHeader = () => ({ Authorization: `Bearer ${getToken()}` });
+const jsonHeaders = () => ({ "Content-Type": "application/json", ...authHeader() });
+
+export const userApi = {
+  getProfile: () =>
+    fetch(`${BASE}/users/profile`, { headers: authHeader() }).then((r) => r.json()),
+
+  updateProfile: (data: { name?: string; phone?: string }) =>
+    fetch(`${BASE}/users/profile`, {
+      method: "PUT",
+      headers: jsonHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  getAddresses: () =>
+    fetch(`${BASE}/users/addresses`, { headers: authHeader() }).then((r) => r.json()),
+
+  addAddress: (data: AddressPayload) =>
+    fetch(`${BASE}/users/addresses`, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  updateAddress: (id: string, data: Partial<AddressPayload>) =>
+    fetch(`${BASE}/users/addresses/${id}`, {
+      method: "PUT",
+      headers: jsonHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  deleteAddress: (id: string) =>
+    fetch(`${BASE}/users/addresses/${id}`, {
+      method: "DELETE",
+      headers: authHeader(),
+    }).then((r) => r.json()),
+
+  setDefaultAddress: (id: string) =>
+    fetch(`${BASE}/users/addresses/${id}/default`, {
+      method: "PUT",
+      headers: authHeader(),
+    }).then((r) => r.json()),
+};
