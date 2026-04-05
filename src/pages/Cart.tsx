@@ -70,7 +70,7 @@ const Cart = () => {
                           {/* Quantity controls */}
                           <div className="flex items-center gap-2 border border-border rounded-lg overflow-hidden">
                             <button
-                              onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.productId, item.variant, item.quantity - 1)}
                               className="px-3 py-1.5 hover:bg-golden/10 transition-colors text-foreground"
                             >
                               <Minus className="w-4 h-4" />
@@ -79,7 +79,7 @@ const Cart = () => {
                               {item.quantity}
                             </span>
                             <button
-                              onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.productId, item.variant, item.quantity + 1)}
                               className="px-3 py-1.5 hover:bg-golden/10 transition-colors text-foreground"
                             >
                               <Plus className="w-4 h-4" />
@@ -87,7 +87,7 @@ const Cart = () => {
                           </div>
 
                           <button
-                            onClick={() => removeFromCart(item.productId)}
+                            onClick={() => removeFromCart(item.productId, item.variant)}
                             className="text-muted-foreground hover:text-destructive transition-colors p-1.5"
                           >
                             <Trash2 className="w-4 h-4" />

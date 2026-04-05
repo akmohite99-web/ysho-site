@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { productApi, Product } from "@/lib/api";
+import { productApi, Product, ProductVariant } from "@/lib/api";
 import heroGhee from "@/assets/hero-ghee.jpg";
 import a2Cow from "@/assets/a2-cow.jpg";
 import bilonaProcess from "@/assets/bilona-process.jpg";
@@ -33,22 +33,29 @@ const Index = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { addToCart, totalItems } = useCart();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct]           = useState<Product | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
   useEffect(() => {
     productApi.list().then((res) => {
-      if (res.success && res.products.length > 0) setProduct(res.products[0]);
+      if (res.success && res.products.length > 0) {
+        const p = res.products[0];
+        setProduct(p);
+        const active = p.variants.filter((v: ProductVariant) => v.isActive);
+        // Default to 500ml if available, otherwise first active variant
+        setSelectedVariant(active.find((v: ProductVariant) => v.size === "500ml") ?? active[0] ?? null);
+      }
     }).catch(() => {});
   }, []);
 
   const handleOrderNow = () => {
-    if (!product) return;
+    if (!product || !selectedVariant) return;
     addToCart({
       productId: product._id,
-      name: product.name,
-      variant: product.variant,
-      price: product.price,
-      image: product.image,
+      name:      product.name,
+      variant:   selectedVariant.size,
+      price:     selectedVariant.price,
+      image:     product.image,
     });
     navigate("/cart");
   };
@@ -135,17 +142,42 @@ const Index = () => {
                 Experience the finest A2 Desi Cow Bilona Ghee, crafted using time-honored traditional methods. 
                 Made from A2 cow milk and natural yoghurt - 100% handmade with no chemicals.
               </p>
+              {/* Size picker */}
               <div className="mb-6">
                 {product ? (
-                  <p className="text-2xl font-bold text-golden">
-                    ₹{product.price.toLocaleString("en-IN")}/- <span className="text-sm text-muted-foreground font-normal">for {product.variant}</span>
-                  </p>
+                  <>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {product.variants.filter((v) => v.isActive).map((v) => (
+                        <button
+                          key={v.size}
+                          onClick={() => setSelectedVariant(v)}
+                          className={`px-4 py-2 rounded-lg border-2 text-sm font-semibold transition-colors
+                            ${selectedVariant?.size === v.size
+                              ? "border-golden bg-golden/10 text-golden"
+                              : "border-border text-muted-foreground hover:border-golden/50"}`}
+                        >
+                          {v.size}
+                        </button>
+                      ))}
+                    </div>
+                    {selectedVariant && (
+                      <p className="text-2xl font-bold text-golden">
+                        ₹{selectedVariant.price.toLocaleString("en-IN")}/-
+                        <span className="text-sm text-muted-foreground font-normal ml-2">for {selectedVariant.size}</span>
+                      </p>
+                    )}
+                  </>
                 ) : (
-                  <div className="h-8 w-48 bg-muted/40 animate-pulse rounded" />
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      {[1,2,3].map(i => <div key={i} className="h-10 w-20 bg-muted/40 animate-pulse rounded-lg" />)}
+                    </div>
+                    <div className="h-8 w-48 bg-muted/40 animate-pulse rounded" />
+                  </div>
                 )}
               </div>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Button variant="hero" size="xl" className="animate-glow" onClick={handleOrderNow} disabled={!product}>
+                <Button variant="hero" size="xl" className="animate-glow" onClick={handleOrderNow} disabled={!product || !selectedVariant}>
                   <Heart className="w-5 h-5 mr-2" />
                   Order Premium Ghee
                 </Button>

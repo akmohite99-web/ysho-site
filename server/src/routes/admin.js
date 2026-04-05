@@ -53,31 +53,50 @@ router.get('/products', adminProtect, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-// POST /api/admin/products — create product
+// POST /api/admin/products — create product with variants
 router.post('/products', adminProtect, async (req, res, next) => {
   try {
-    const { name, variant, price, image } = req.body;
-    if (!name || !variant || price == null) {
-      return res.status(400).json({ success: false, message: 'name, variant and price are required.' });
+    const { name, image, variants } = req.body;
+    if (!name || !Array.isArray(variants) || variants.length === 0) {
+      return res.status(400).json({ success: false, message: 'name and at least one variant are required.' });
     }
-    const product = await Product.create({ name, variant, price, image });
+    const product = await Product.create({ name, image, variants });
     res.status(201).json({ success: true, product });
   } catch (err) { next(err); }
 });
 
-// PUT /api/admin/products/:id — update product
+// PUT /api/admin/products/:id — update product name / image / isActive / full variants array
 router.put('/products/:id', adminProtect, async (req, res, next) => {
   try {
-    const { name, variant, price, image, isActive } = req.body;
+    const { name, image, isActive, variants } = req.body;
     const update = {};
-    if (name      != null) update.name     = name;
-    if (variant   != null) update.variant  = variant;
-    if (price     != null) update.price    = price;
-    if (image     != null) update.image    = image;
-    if (isActive  != null) update.isActive = isActive;
+    if (name     != null) update.name     = name;
+    if (image    != null) update.image    = image;
+    if (isActive != null) update.isActive = isActive;
+    if (variants != null) update.variants = variants;
 
     const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
+    res.json({ success: true, product });
+  } catch (err) { next(err); }
+});
+
+// PATCH /api/admin/products/:id/variant — update a single variant's price/isActive by size
+router.patch('/products/:id/variant', adminProtect, async (req, res, next) => {
+  try {
+    const { size, price, isActive } = req.body;
+    if (!size) return res.status(400).json({ success: false, message: 'size is required.' });
+
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
+
+    const variant = product.variants.find((v) => v.size === size);
+    if (!variant) return res.status(404).json({ success: false, message: `Variant ${size} not found.` });
+
+    if (price    != null) variant.price    = price;
+    if (isActive != null) variant.isActive = isActive;
+    await product.save();
+
     res.json({ success: true, product });
   } catch (err) { next(err); }
 });

@@ -109,12 +109,17 @@ type AddressPayload = Omit<SavedAddress, "_id">;
 const authHeader = () => ({ Authorization: `Bearer ${getToken()}` });
 const jsonHeaders = () => ({ "Content-Type": "application/json", ...authHeader() });
 
+export interface ProductVariant {
+  size: string;
+  price: number;
+  isActive: boolean;
+}
+
 export interface Product {
   _id: string;
   name: string;
-  variant: string;
-  price: number;
   image: string;
+  variants: ProductVariant[];
   isActive: boolean;
 }
 
@@ -169,6 +174,13 @@ export const productApi = {
       method: "PUT",
       headers: jsonHeaders(),
       body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  updateVariant: (id: string, size: string, data: { price?: number; isActive?: boolean }) =>
+    fetch(`${BASE}/admin/products/${id}/variant`, {
+      method: "PATCH",
+      headers: jsonHeaders(),
+      body: JSON.stringify({ size, ...data }),
     }).then((r) => r.json()),
 
   delete: (id: string) =>

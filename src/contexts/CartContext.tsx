@@ -14,8 +14,8 @@ interface CartContextType {
   totalItems: number;
   totalAmount: number;
   addToCart: (item: Omit<CartItem, "quantity">) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, variant: string, quantity: number) => void;
+  removeFromCart: (productId: string, variant: string) => void;
   clearCart: () => void;
 }
 
@@ -37,29 +37,28 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(CART_KEY, JSON.stringify(items));
   }, [items]);
 
+  const sameItem = (a: CartItem, b: Omit<CartItem, "quantity">) =>
+    a.productId === b.productId && a.variant === b.variant;
+
   const addToCart = (newItem: Omit<CartItem, "quantity">) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === newItem.productId);
+      const existing = prev.find((i) => sameItem(i, newItem));
       if (existing) {
-        return prev.map((i) =>
-          i.productId === newItem.productId
-            ? { ...i, quantity: i.quantity + 1 }
-            : i
-        );
+        return prev.map((i) => sameItem(i, newItem) ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, { ...newItem, quantity: 1 }];
     });
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity < 1) return removeFromCart(productId);
+  const updateQuantity = (productId: string, variant: string, quantity: number) => {
+    if (quantity < 1) return removeFromCart(productId, variant);
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, quantity } : i))
+      prev.map((i) => (i.productId === productId && i.variant === variant ? { ...i, quantity } : i))
     );
   };
 
-  const removeFromCart = (productId: string) => {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  const removeFromCart = (productId: string, variant: string) => {
+    setItems((prev) => prev.filter((i) => !(i.productId === productId && i.variant === variant)));
   };
 
   const clearCart = () => setItems([]);

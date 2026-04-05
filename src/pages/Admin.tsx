@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { adminApi, productApi, couponApi, Product } from "@/lib/api";
+import { adminApi, productApi, couponApi, Product, ProductVariant } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
@@ -123,8 +123,10 @@ const Admin = () => {
   const [products, setProducts]           = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [editingId, setEditingId]         = useState<string | null>(null);
-  const [editFields, setEditFields]       = useState<{ name: string; variant: string; price: string; image: string }>({ name: "", variant: "", price: "", image: "" });
-  const [newProduct, setNewProduct]       = useState({ name: "", variant: "", price: "", image: "" });
+  const [editName, setEditName]           = useState("");
+  const [editImage, setEditImage]         = useState("");
+  const [editPrices, setEditPrices]       = useState<Record<string, string>>({});  // size → price string
+  const [newProduct, setNewProduct]       = useState({ name: "", image: "" });
   const [showAddForm, setShowAddForm]     = useState(false);
   const [productError, setProductError]   = useState("");
 
@@ -151,27 +153,46 @@ const Admin = () => {
   }, []);
 
   // ── product handlers ───────────────────────────────────────────────────────
+  const DEFAULT_VARIANTS = [
+    { size: "250ml",  price: 0, isActive: true },
+    { size: "500ml",  price: 0, isActive: true },
+    { size: "1000ml", price: 0, isActive: true },
+  ];
+
   const startEdit = (p: Product) => {
     setEditingId(p._id);
-    setEditFields({ name: p.name, variant: p.variant, price: String(p.price), image: p.image });
+    setEditName(p.name);
+    setEditImage(p.image);
+    const prices: Record<string, string> = {};
+    p.variants.forEach((v) => { prices[v.size] = String(v.price); });
+    setEditPrices(prices);
     setProductError("");
   };
 
   const cancelEdit = () => { setEditingId(null); setProductError(""); };
 
-  const saveEdit = async (id: string) => {
-    const price = Number(editFields.price);
-    if (!editFields.name || !editFields.variant || isNaN(price) || price < 0) {
-      setProductError("Name, variant and a valid price are required.");
+  const saveEdit = async (p: Product) => {
+    const updatedVariants = p.variants.map((v) => ({
+      ...v,
+      price: Number(editPrices[v.size] ?? v.price),
+    }));
+    if (updatedVariants.some((v) => isNaN(v.price) || v.price < 0)) {
+      setProductError("All prices must be valid numbers.");
       return;
     }
-    const res = await productApi.update(id, { name: editFields.name, variant: editFields.variant, price, image: editFields.image });
+    const res = await productApi.update(p._id, { name: editName, image: editImage, variants: updatedVariants });
     if (res.success) {
-      setProducts((prev) => prev.map((p) => (p._id === id ? res.product : p)));
+      setProducts((prev) => prev.map((x) => (x._id === p._id ? res.product : x)));
       setEditingId(null);
+      setProductError("");
     } else {
       setProductError(res.message || "Update failed.");
     }
+  };
+
+  const toggleVariantActive = async (p: Product, v: ProductVariant) => {
+    const res = await productApi.updateVariant(p._id, v.size, { isActive: !v.isActive });
+    if (res.success) setProducts((prev) => prev.map((x) => (x._id === p._id ? res.product : x)));
   };
 
   const toggleActive = async (p: Product) => {
@@ -185,16 +206,24 @@ const Admin = () => {
     if (res.success) setProducts((prev) => prev.filter((p) => p._id !== id));
   };
 
+  const [newVariantPrices, setNewVariantPrices] = useState<Record<string, string>>({ "250ml": "", "500ml": "", "1000ml": "" });
+
   const addProduct = async () => {
-    const price = Number(newProduct.price);
-    if (!newProduct.name || !newProduct.variant || isNaN(price) || price < 0) {
-      setProductError("Name, variant and a valid price are required.");
+    if (!newProduct.name) { setProductError("Product name is required."); return; }
+    const variants = DEFAULT_VARIANTS.map((v) => ({
+      size: v.size,
+      price: Number(newVariantPrices[v.size] || 0),
+      isActive: true,
+    }));
+    if (variants.some((v) => isNaN(v.price) || v.price < 0)) {
+      setProductError("All prices must be valid numbers.");
       return;
     }
-    const res = await productApi.create({ name: newProduct.name, variant: newProduct.variant, price, image: newProduct.image });
+    const res = await productApi.create({ name: newProduct.name, image: newProduct.image, variants });
     if (res.success) {
       setProducts((prev) => [...prev, res.product]);
-      setNewProduct({ name: "", variant: "", price: "", image: "" });
+      setNewProduct({ name: "", image: "" });
+      setNewVariantPrices({ "250ml": "", "500ml": "", "1000ml": "" });
       setShowAddForm(false);
       setProductError("");
     } else {
@@ -589,10 +618,17 @@ const Admin = () => {
                   <div className="mb-4 p-4 border border-border/40 rounded-lg space-y-3">
                     <p className="text-sm font-medium">New Product</p>
                     <div className="grid sm:grid-cols-2 gap-3">
-                      <Input placeholder="Name" value={newProduct.name} onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))} />
-                      <Input placeholder="Variant (e.g. 500ml)" value={newProduct.variant} onChange={(e) => setNewProduct((p) => ({ ...p, variant: e.target.value }))} />
-                      <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))} />
+                      <Input placeholder="Product name" value={newProduct.name} onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))} />
                       <Input placeholder="Image URL (optional)" value={newProduct.image} onChange={(e) => setNewProduct((p) => ({ ...p, image: e.target.value }))} />
+                    </div>
+                    <p className="text-xs text-muted-foreground font-medium">Variant Prices (₹)</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {["250ml", "500ml", "1000ml"].map((size) => (
+                        <div key={size}>
+                          <label className="text-xs text-muted-foreground mb-1 block">{size}</label>
+                          <Input type="number" placeholder="₹" value={newVariantPrices[size]} onChange={(e) => setNewVariantPrices((p) => ({ ...p, [size]: e.target.value }))} />
+                        </div>
+                      ))}
                     </div>
                     <div className="flex gap-2">
                       <Button size="sm" variant="golden" onClick={addProduct}><Check className="w-4 h-4 mr-1" /> Save</Button>
@@ -608,50 +644,69 @@ const Admin = () => {
                 ) : products.length === 0 ? (
                   <p className="text-center text-muted-foreground py-12">No products yet. Add one above.</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {products.map((p) => (
                       <div key={p._id} className={`border rounded-lg p-4 ${p.isActive ? "border-border/40" : "border-border/20 opacity-60"}`}>
-                        {editingId === p._id ? (
-                          <div className="space-y-3">
-                            <div className="grid sm:grid-cols-2 gap-3">
-                              <Input placeholder="Name" value={editFields.name} onChange={(e) => setEditFields((f) => ({ ...f, name: e.target.value }))} />
-                              <Input placeholder="Variant" value={editFields.variant} onChange={(e) => setEditFields((f) => ({ ...f, variant: e.target.value }))} />
-                              <Input type="number" placeholder="Price (₹)" value={editFields.price} onChange={(e) => setEditFields((f) => ({ ...f, price: e.target.value }))} />
-                              <Input placeholder="Image URL" value={editFields.image} onChange={(e) => setEditFields((f) => ({ ...f, image: e.target.value }))} />
-                            </div>
-                            <div className="flex gap-2">
-                              <Button size="sm" variant="golden" onClick={() => saveEdit(p._id)}><Check className="w-4 h-4 mr-1" /> Save</Button>
-                              <Button size="sm" variant="ghost" onClick={cancelEdit}><X className="w-4 h-4 mr-1" /> Cancel</Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                              {p.image && (
-                                <img src={p.image} alt={p.name} className="w-12 h-12 object-contain rounded border border-border/30 bg-cream" />
-                              )}
-                              <div>
-                                <p className="font-medium">{p.name}</p>
-                                <p className="text-sm text-muted-foreground">{p.variant}</p>
-                                <p className="text-lg font-bold text-golden">₹{p.price.toLocaleString("en-IN")}</p>
+                        {/* Product header */}
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <div className="flex items-center gap-3">
+                            {p.image && <img src={p.image} alt={p.name} className="w-10 h-10 object-contain rounded border border-border/30 bg-cream" />}
+                            {editingId === p._id ? (
+                              <div className="flex gap-2">
+                                <Input className="h-8 text-sm w-48" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Product name" />
+                                <Input className="h-8 text-sm w-48" value={editImage} onChange={(e) => setEditImage(e.target.value)} placeholder="Image URL" />
                               </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <Badge
-                                className={`text-xs cursor-pointer ${p.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}
-                                onClick={() => toggleActive(p)}
-                              >
-                                {p.isActive ? "Active" : "Inactive"}
-                              </Badge>
-                              <Button size="sm" variant="ghost" onClick={() => startEdit(p)}>
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteProduct(p._id)}>
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
+                            ) : (
+                              <p className="font-semibold">{p.name}</p>
+                            )}
                           </div>
-                        )}
+                          <div className="flex items-center gap-2 shrink-0">
+                            <Badge
+                              className={`text-xs cursor-pointer ${p.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}
+                              onClick={() => toggleActive(p)}
+                            >
+                              {p.isActive ? "Active" : "Inactive"}
+                            </Badge>
+                            {editingId === p._id ? (
+                              <>
+                                <Button size="sm" variant="golden" className="h-7 px-2 text-xs" onClick={() => saveEdit(p)}><Check className="w-3 h-3 mr-1" />Save</Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={cancelEdit}><X className="w-3 h-3 mr-1" />Cancel</Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button size="sm" variant="ghost" onClick={() => startEdit(p)}><Pencil className="w-4 h-4" /></Button>
+                                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteProduct(p._id)}><Trash2 className="w-4 h-4" /></Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Variant prices table */}
+                        <div className="grid grid-cols-3 gap-2">
+                          {p.variants.map((v) => (
+                            <div key={v.size} className={`border rounded-lg p-3 ${v.isActive ? "border-border/40" : "border-border/20 bg-muted/30"}`}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-semibold text-muted-foreground">{v.size}</span>
+                                <button
+                                  className={`text-[10px] px-1.5 py-0.5 rounded border ${v.isActive ? "text-green-700 border-green-200 bg-green-50" : "text-gray-500 border-gray-200 bg-gray-50"}`}
+                                  onClick={() => toggleVariantActive(p, v)}
+                                >
+                                  {v.isActive ? "On" : "Off"}
+                                </button>
+                              </div>
+                              {editingId === p._id ? (
+                                <Input
+                                  type="number"
+                                  className="h-8 text-sm"
+                                  value={editPrices[v.size] ?? String(v.price)}
+                                  onChange={(e) => setEditPrices((pr) => ({ ...pr, [v.size]: e.target.value }))}
+                                />
+                              ) : (
+                                <p className="text-base font-bold text-golden">₹{v.price.toLocaleString("en-IN")}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
