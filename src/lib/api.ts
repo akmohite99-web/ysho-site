@@ -104,6 +104,43 @@ type AddressPayload = Omit<SavedAddress, "_id">;
 const authHeader = () => ({ Authorization: `Bearer ${getToken()}` });
 const jsonHeaders = () => ({ "Content-Type": "application/json", ...authHeader() });
 
+export interface Product {
+  _id: string;
+  name: string;
+  variant: string;
+  price: number;
+  image: string;
+  isActive: boolean;
+}
+
+export const productApi = {
+  list: () =>
+    fetch(`${BASE}/products`).then((r) => r.json()),
+
+  adminList: () =>
+    fetch(`${BASE}/admin/products`, { headers: authHeader() }).then((r) => r.json()),
+
+  create: (data: { name: string; variant: string; price: number; image?: string }) =>
+    fetch(`${BASE}/admin/products`, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  update: (id: string, data: Partial<{ name: string; variant: string; price: number; image: string; isActive: boolean }>) =>
+    fetch(`${BASE}/admin/products/${id}`, {
+      method: "PUT",
+      headers: jsonHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  delete: (id: string) =>
+    fetch(`${BASE}/admin/products/${id}`, {
+      method: "DELETE",
+      headers: authHeader(),
+    }).then((r) => r.json()),
+};
+
 export const adminApi = {
   getUsers: () =>
     fetch(`${BASE}/admin/users`, { headers: { Authorization: `Bearer ${getToken()}` } }).then((r) => r.json()),

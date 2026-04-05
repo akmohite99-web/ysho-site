@@ -2,10 +2,11 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./config/db');
-const authRoutes   = require('./routes/auth');
-const orderRoutes  = require('./routes/orders');
-const userRoutes   = require('./routes/users');
-const adminRoutes  = require('./routes/admin');
+const authRoutes    = require('./routes/auth');
+const orderRoutes   = require('./routes/orders');
+const userRoutes    = require('./routes/users');
+const adminRoutes   = require('./routes/admin');
+const productRoutes = require('./routes/products');
 const { errorHandler } = require('./middleware/errorHandler');
 
 connectDB();
@@ -26,10 +27,11 @@ app.use(
 app.use(express.json({ limit: '10kb' }));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
-app.use('/api/auth',   authRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/users',  userRoutes);
-app.use('/api/admin',  adminRoutes);
+app.use('/api/auth',     authRoutes);
+app.use('/api/orders',   orderRoutes);
+app.use('/api/users',    userRoutes);
+app.use('/api/admin',    adminRoutes);
+app.use('/api/products', productRoutes);
 
 app.use(errorHandler);
 

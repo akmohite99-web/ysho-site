@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package } from "lucide-react";
+import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package, Pencil, Check, X, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -14,7 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { adminApi } from "@/lib/api";
+import { adminApi, productApi, Product } from "@/lib/api";
+import { Input } from "@/components/ui/input";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
 interface AdminUser {
@@ -98,6 +99,15 @@ const Admin = () => {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState("");
 
+  // ── products state ─────────────────────────────────────────────────────────
+  const [products, setProducts]           = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [editingId, setEditingId]         = useState<string | null>(null);
+  const [editFields, setEditFields]       = useState<{ name: string; variant: string; price: string; image: string }>({ name: "", variant: "", price: "", image: "" });
+  const [newProduct, setNewProduct]       = useState({ name: "", variant: "", price: "", image: "" });
+  const [showAddForm, setShowAddForm]     = useState(false);
+  const [productError, setProductError]   = useState("");
+
   useEffect(() => {
     adminApi.getUsers()
       .then((d) => { if (d.success) setUsers(d.users); else setError(d.message); })
@@ -108,7 +118,64 @@ const Admin = () => {
       .then((d) => { if (d.success) setOrders(d.orders); else setError(d.message); })
       .catch(() => setError("Failed to load orders."))
       .finally(() => setLoadingOrders(false));
+
+    productApi.adminList()
+      .then((d) => { if (d.success) setProducts(d.products); })
+      .catch(() => {})
+      .finally(() => setLoadingProducts(false));
   }, []);
+
+  // ── product handlers ───────────────────────────────────────────────────────
+  const startEdit = (p: Product) => {
+    setEditingId(p._id);
+    setEditFields({ name: p.name, variant: p.variant, price: String(p.price), image: p.image });
+    setProductError("");
+  };
+
+  const cancelEdit = () => { setEditingId(null); setProductError(""); };
+
+  const saveEdit = async (id: string) => {
+    const price = Number(editFields.price);
+    if (!editFields.name || !editFields.variant || isNaN(price) || price < 0) {
+      setProductError("Name, variant and a valid price are required.");
+      return;
+    }
+    const res = await productApi.update(id, { name: editFields.name, variant: editFields.variant, price, image: editFields.image });
+    if (res.success) {
+      setProducts((prev) => prev.map((p) => (p._id === id ? res.product : p)));
+      setEditingId(null);
+    } else {
+      setProductError(res.message || "Update failed.");
+    }
+  };
+
+  const toggleActive = async (p: Product) => {
+    const res = await productApi.update(p._id, { isActive: !p.isActive });
+    if (res.success) setProducts((prev) => prev.map((x) => (x._id === p._id ? res.product : x)));
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (!confirm("Delete this product permanently?")) return;
+    const res = await productApi.delete(id);
+    if (res.success) setProducts((prev) => prev.filter((p) => p._id !== id));
+  };
+
+  const addProduct = async () => {
+    const price = Number(newProduct.price);
+    if (!newProduct.name || !newProduct.variant || isNaN(price) || price < 0) {
+      setProductError("Name, variant and a valid price are required.");
+      return;
+    }
+    const res = await productApi.create({ name: newProduct.name, variant: newProduct.variant, price, image: newProduct.image });
+    if (res.success) {
+      setProducts((prev) => [...prev, res.product]);
+      setNewProduct({ name: "", variant: "", price: "", image: "" });
+      setShowAddForm(false);
+      setProductError("");
+    } else {
+      setProductError(res.message || "Create failed.");
+    }
+  };
 
   const handleStatusChange = async (orderId: string, status: string) => {
     const result = await adminApi.updateOrderStatus(orderId, status);
@@ -261,6 +328,7 @@ const Admin = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="products">Products</TabsTrigger>
           </TabsList>
 
           {/* Orders Tab */}
@@ -381,6 +449,99 @@ const Admin = () => {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          {/* Products Tab */}
+          <TabsContent value="products">
+            <Card className="border-border/50">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Package className="w-5 h-5 text-golden" />
+                  Products
+                </CardTitle>
+                <Button size="sm" variant="golden" className="gap-1.5" onClick={() => { setShowAddForm((v) => !v); setProductError(""); }}>
+                  <Plus className="w-4 h-4" />
+                  Add Product
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {productError && (
+                  <p className="text-sm text-destructive mb-3">{productError}</p>
+                )}
+
+                {/* Add form */}
+                {showAddForm && (
+                  <div className="mb-4 p-4 border border-border/40 rounded-lg space-y-3">
+                    <p className="text-sm font-medium">New Product</p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <Input placeholder="Name" value={newProduct.name} onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))} />
+                      <Input placeholder="Variant (e.g. 500ml)" value={newProduct.variant} onChange={(e) => setNewProduct((p) => ({ ...p, variant: e.target.value }))} />
+                      <Input type="number" placeholder="Price (₹)" value={newProduct.price} onChange={(e) => setNewProduct((p) => ({ ...p, price: e.target.value }))} />
+                      <Input placeholder="Image URL (optional)" value={newProduct.image} onChange={(e) => setNewProduct((p) => ({ ...p, image: e.target.value }))} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="golden" onClick={addProduct}><Check className="w-4 h-4 mr-1" /> Save</Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setShowAddForm(false); setProductError(""); }}><X className="w-4 h-4 mr-1" /> Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
+                {loadingProducts ? (
+                  <div className="flex justify-center py-12">
+                    <div className="w-8 h-8 rounded-full border-4 border-golden border-t-transparent animate-spin" />
+                  </div>
+                ) : products.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-12">No products yet. Add one above.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {products.map((p) => (
+                      <div key={p._id} className={`border rounded-lg p-4 ${p.isActive ? "border-border/40" : "border-border/20 opacity-60"}`}>
+                        {editingId === p._id ? (
+                          <div className="space-y-3">
+                            <div className="grid sm:grid-cols-2 gap-3">
+                              <Input placeholder="Name" value={editFields.name} onChange={(e) => setEditFields((f) => ({ ...f, name: e.target.value }))} />
+                              <Input placeholder="Variant" value={editFields.variant} onChange={(e) => setEditFields((f) => ({ ...f, variant: e.target.value }))} />
+                              <Input type="number" placeholder="Price (₹)" value={editFields.price} onChange={(e) => setEditFields((f) => ({ ...f, price: e.target.value }))} />
+                              <Input placeholder="Image URL" value={editFields.image} onChange={(e) => setEditFields((f) => ({ ...f, image: e.target.value }))} />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="golden" onClick={() => saveEdit(p._id)}><Check className="w-4 h-4 mr-1" /> Save</Button>
+                              <Button size="sm" variant="ghost" onClick={cancelEdit}><X className="w-4 h-4 mr-1" /> Cancel</Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              {p.image && (
+                                <img src={p.image} alt={p.name} className="w-12 h-12 object-contain rounded border border-border/30 bg-cream" />
+                              )}
+                              <div>
+                                <p className="font-medium">{p.name}</p>
+                                <p className="text-sm text-muted-foreground">{p.variant}</p>
+                                <p className="text-lg font-bold text-golden">₹{p.price.toLocaleString("en-IN")}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Badge
+                                className={`text-xs cursor-pointer ${p.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}
+                                onClick={() => toggleActive(p)}
+                              >
+                                {p.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                              <Button size="sm" variant="ghost" onClick={() => startEdit(p)}>
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteProduct(p._id)}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>

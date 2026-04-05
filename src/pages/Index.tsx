@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import PRODUCTS from "@/config/products";
+import { productApi, Product } from "@/lib/api";
 import heroGhee from "@/assets/hero-ghee.jpg";
 import a2Cow from "@/assets/a2-cow.jpg";
 import bilonaProcess from "@/assets/bilona-process.jpg";
@@ -32,11 +33,18 @@ const Index = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { addToCart, totalItems } = useCart();
   const navigate = useNavigate();
+  const [product, setProduct] = useState<Product | null>(null);
+
+  useEffect(() => {
+    productApi.list().then((res) => {
+      if (res.success && res.products.length > 0) setProduct(res.products[0]);
+    }).catch(() => {});
+  }, []);
 
   const handleOrderNow = () => {
-    const product = PRODUCTS[0];
+    if (!product) return;
     addToCart({
-      productId: product.id,
+      productId: product._id,
       name: product.name,
       variant: product.variant,
       price: product.price,
@@ -128,10 +136,16 @@ const Index = () => {
                 Made from A2 cow milk and natural yoghurt - 100% handmade with no chemicals.
               </p>
               <div className="mb-6">
-                <p className="text-2xl font-bold text-golden">₹1,899/- <span className="text-sm text-muted-foreground font-normal">for 500ml (450g)</span></p>
+                {product ? (
+                  <p className="text-2xl font-bold text-golden">
+                    ₹{product.price.toLocaleString("en-IN")}/- <span className="text-sm text-muted-foreground font-normal">for {product.variant}</span>
+                  </p>
+                ) : (
+                  <div className="h-8 w-48 bg-muted/40 animate-pulse rounded" />
+                )}
               </div>
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Button variant="hero" size="xl" className="animate-glow" onClick={handleOrderNow}>
+                <Button variant="hero" size="xl" className="animate-glow" onClick={handleOrderNow} disabled={!product}>
                   <Heart className="w-5 h-5 mr-2" />
                   Order Premium Ghee
                 </Button>

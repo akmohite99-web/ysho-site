@@ -1,6 +1,7 @@
 const express = require('express');
-const User  = require('../models/User');
-const Order = require('../models/Order');
+const User    = require('../models/User');
+const Order   = require('../models/Order');
+const Product = require('../models/Product');
 const { adminProtect } = require('../middleware/adminAuth');
 
 const router = express.Router();
@@ -41,6 +42,51 @@ router.patch('/orders/:id/status', adminProtect, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// GET /api/admin/products — all products (including inactive)
+router.get('/products', adminProtect, async (req, res, next) => {
+  try {
+    const products = await Product.find({}).sort({ createdAt: 1 });
+    res.json({ success: true, products });
+  } catch (err) { next(err); }
+});
+
+// POST /api/admin/products — create product
+router.post('/products', adminProtect, async (req, res, next) => {
+  try {
+    const { name, variant, price, image } = req.body;
+    if (!name || !variant || price == null) {
+      return res.status(400).json({ success: false, message: 'name, variant and price are required.' });
+    }
+    const product = await Product.create({ name, variant, price, image });
+    res.status(201).json({ success: true, product });
+  } catch (err) { next(err); }
+});
+
+// PUT /api/admin/products/:id — update product
+router.put('/products/:id', adminProtect, async (req, res, next) => {
+  try {
+    const { name, variant, price, image, isActive } = req.body;
+    const update = {};
+    if (name      != null) update.name     = name;
+    if (variant   != null) update.variant  = variant;
+    if (price     != null) update.price    = price;
+    if (image     != null) update.image    = image;
+    if (isActive  != null) update.isActive = isActive;
+
+    const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
+    res.json({ success: true, product });
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/admin/products/:id — permanently delete
+router.delete('/products/:id', adminProtect, async (req, res, next) => {
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;
