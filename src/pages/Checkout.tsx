@@ -20,7 +20,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { orderApi } from "@/lib/api";
+import { orderApi, userApi, SavedAddress } from "@/lib/api";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
 const addressSchema = z.object({
@@ -55,6 +55,8 @@ const Checkout = () => {
   const [utrError, setUtrError]           = useState("");
   const [submittingUtr, setSubmittingUtr] = useState(false);
   const [copied, setCopied]               = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
 
   useEffect(() => {
     if (items.length === 0) navigate("/cart");
@@ -72,6 +74,40 @@ const Checkout = () => {
       pincode: "",
     },
   });
+
+  // Fetch saved addresses and pre-fill with default
+  useEffect(() => {
+    userApi.getAddresses().then((res) => {
+      if (res.success && Array.isArray(res.addresses) && res.addresses.length > 0) {
+        setSavedAddresses(res.addresses);
+        const def: SavedAddress = res.addresses.find((a: SavedAddress) => a.isDefault) ?? res.addresses[0];
+        setSelectedAddressId(def._id);
+        form.reset({
+          fullName: def.fullName,
+          phone:    def.phone,
+          line1:    def.line1,
+          line2:    def.line2 ?? "",
+          city:     def.city,
+          state:    def.state,
+          pincode:  def.pincode,
+        });
+      }
+    }).catch(() => {/* silent — user can fill manually */});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const applyAddress = (addr: SavedAddress) => {
+    setSelectedAddressId(addr._id);
+    form.reset({
+      fullName: addr.fullName,
+      phone:    addr.phone,
+      line1:    addr.line1,
+      line2:    addr.line2 ?? "",
+      city:     addr.city,
+      state:    addr.state,
+      pincode:  addr.pincode,
+    });
+  };
 
   // Step 1 — address submitted → create order, show UPI screen
   const onSubmit = async (address: AddressForm) => {
@@ -173,6 +209,45 @@ const Checkout = () => {
                     <Alert variant="destructive" className="mb-4">
                       <AlertDescription>{apiError}</AlertDescription>
                     </Alert>
+                  )}
+
+                  {savedAddresses.length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-sm font-medium text-muted-foreground mb-2">Saved Addresses</p>
+                      <div className="space-y-2">
+                        {savedAddresses.map((addr) => (
+                          <button
+                            key={addr._id}
+                            type="button"
+                            onClick={() => applyAddress(addr)}
+                            className={`w-full text-left rounded-lg border px-4 py-3 text-sm transition-colors flex items-start gap-3 ${
+                              selectedAddressId === addr._id
+                                ? "border-golden bg-golden/5"
+                                : "border-border/50 hover:border-golden/50"
+                            }`}
+                          >
+                            <CheckCircle2
+                              className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                                selectedAddressId === addr._id ? "text-golden" : "text-muted-foreground/30"
+                              }`}
+                            />
+                            <div>
+                              <span className="font-medium capitalize">{addr.label}</span>
+                              {addr.isDefault && (
+                                <span className="ml-2 text-xs text-golden">(Default)</span>
+                              )}
+                              <p className="text-muted-foreground mt-0.5">
+                                {addr.fullName} · {addr.phone}
+                              </p>
+                              <p className="text-muted-foreground">
+                                {addr.line1}{addr.line2 ? `, ${addr.line2}` : ""}, {addr.city}, {addr.state} – {addr.pincode}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <Separator className="my-4" />
+                    </div>
                   )}
 
                   <Form {...form}>
