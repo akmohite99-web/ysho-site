@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { CheckCircle2, Package, MapPin, Receipt } from "lucide-react";
+import { CheckCircle2, Clock, Package, MapPin, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -12,7 +12,7 @@ interface Order {
   items: { productId: string; name: string; variant: string; price: number; quantity: number }[];
   address: { fullName: string; phone: string; line1: string; line2?: string; city: string; state: string; pincode: string };
   amount: number;
-  razorpayPaymentId: string;
+  utrNumber?: string;
   status: string;
   createdAt: string;
 }
@@ -50,13 +50,27 @@ const OrderConfirmation = () => {
       <div className="flex-1 container mx-auto px-4 py-12 max-w-2xl">
         {/* Success banner */}
         <div className="text-center mb-10 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-ysho-green/10 mb-4">
-            <CheckCircle2 className="w-12 h-12 text-ysho-green" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Order Placed!</h1>
-          <p className="text-muted-foreground">
-            Thank you for your purchase. We'll process your order shortly.
-          </p>
+          {order?.status === "pending" ? (
+            <>
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-yellow-100 mb-4">
+                <Clock className="w-12 h-12 text-yellow-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Payment Under Verification</h1>
+              <p className="text-muted-foreground">
+                We've received your UTR number and will confirm your order within a few hours.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-ysho-green/10 mb-4">
+                <CheckCircle2 className="w-12 h-12 text-ysho-green" />
+              </div>
+              <h1 className="text-3xl font-bold text-foreground mb-2">Order Placed!</h1>
+              <p className="text-muted-foreground">
+                Thank you for your purchase. We'll process your order shortly.
+              </p>
+            </>
+          )}
         </div>
 
         {order ? (
@@ -71,10 +85,16 @@ const OrderConfirmation = () => {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <span className="text-muted-foreground">Order ID</span>
                   <span className="font-mono text-xs break-all">{order._id}</span>
-                  <span className="text-muted-foreground">Payment ID</span>
-                  <span className="font-mono text-xs break-all">{order.razorpayPaymentId}</span>
+                  {order.utrNumber && (
+                    <>
+                      <span className="text-muted-foreground">UTR Number</span>
+                      <span className="font-mono text-xs break-all">{order.utrNumber}</span>
+                    </>
+                  )}
                   <span className="text-muted-foreground">Status</span>
-                  <span className="capitalize font-medium text-ysho-green">{order.status}</span>
+                  <span className={`capitalize font-medium ${order.status === "pending" ? "text-yellow-600" : "text-ysho-green"}`}>
+                    {order.status === "pending" ? "Awaiting Verification" : order.status}
+                  </span>
                   <span className="text-muted-foreground">Date</span>
                   <span>{new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</span>
                 </div>
@@ -101,7 +121,7 @@ const OrderConfirmation = () => {
                 </div>
                 <Separator className="my-3" />
                 <div className="flex justify-between font-bold">
-                  <span>Total Paid</span>
+                  <span>Total</span>
                   <span className="text-golden">₹{order.amount.toLocaleString("en-IN")}</span>
                 </div>
               </CardContent>

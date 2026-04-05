@@ -65,19 +65,14 @@ export const orderApi = {
       body: JSON.stringify(data),
     }).then((res) => res.json()),
 
-  verify: (data: {
-    orderId: string;
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    razorpaySignature: string;
-  }) =>
-    fetch(`${BASE}/orders/verify`, {
+  submitUtr: (orderId: string, utrNumber: string) =>
+    fetch(`${BASE}/orders/${orderId}/utr`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${getToken()}`,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ utrNumber }),
     }).then((res) => res.json()),
 
   getById: (id: string) =>

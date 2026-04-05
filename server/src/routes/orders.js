@@ -1,17 +1,10 @@
 const express = require('express');
-const crypto  = require('crypto');
-const Razorpay = require('razorpay');
-const Order  = require('../models/Order');
+const Order   = require('../models/Order');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
-const razorpay = new Razorpay({
-  key_id:     process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
-// POST /api/orders/create  —  create Razorpay order + pending DB record
+// POST /api/orders/create  —  create order, return orderId + UPI details
 router.post('/create', protect, async (req, res, next) => {
   try {
     const { items, address } = req.body;
@@ -22,62 +15,44 @@ router.post('/create', protect, async (req, res, next) => {
 
     const amount = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    // Create order on Razorpay (amount in paise)
-    const rzpOrder = await razorpay.orders.create({
-      amount:   amount * 100,
-      currency: 'INR',
-      receipt:  `rcpt_${Date.now()}`,
-    });
-
-    // Save pending order to DB
     const order = await Order.create({
-      userId:          req.userId,
+      userId:  req.userId,
       items,
       address,
       amount,
-      razorpayOrderId: rzpOrder.id,
-      status:          'pending',
+      status:  'payment_pending',
     });
 
     res.status(201).json({
-      success: true,
-      orderId:        order._id,
-      razorpayOrderId: rzpOrder.id,
-      amount:         rzpOrder.amount,       // paise
-      currency:       rzpOrder.currency,
-      keyId:          process.env.RAZORPAY_KEY_ID,
+      success:  true,
+      orderId:  order._id,
+      amount,
+      upiId:    process.env.UPI_ID,
+      upiName:  process.env.UPI_NAME || 'Ysho A2 Desi Cow Bilona Ghee',
     });
   } catch (err) {
     next(err);
   }
 });
 
-// POST /api/orders/verify  —  verify Razorpay signature, mark order paid
-router.post('/verify', protect, async (req, res, next) => {
+// POST /api/orders/:id/utr  —  customer submits UTR after paying
+router.post('/:id/utr', protect, async (req, res, next) => {
   try {
-    const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    const { utrNumber } = req.body;
 
-    // Verify HMAC signature
-    const body = `${razorpayOrderId}|${razorpayPaymentId}`;
-    const expected = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(body)
-      .digest('hex');
-
-    if (expected !== razorpaySignature) {
-      await Order.findByIdAndUpdate(orderId, { status: 'failed' });
-      return res.status(400).json({ success: false, message: 'Payment verification failed.' });
+    if (!utrNumber?.trim()) {
+      return res.status(400).json({ success: false, message: 'UTR number is required.' });
     }
 
-    const order = await Order.findByIdAndUpdate(
-      orderId,
-      {
-        razorpayPaymentId,
-        razorpaySignature,
-        status: 'paid',
-      },
+    const order = await Order.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId, status: 'payment_pending' },
+      { utrNumber: utrNumber.trim(), status: 'pending' },
       { new: true }
     );
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found or already processed.' });
+    }
 
     res.status(200).json({ success: true, order });
   } catch (err) {

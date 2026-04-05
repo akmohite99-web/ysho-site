@@ -26,15 +26,17 @@ const addressSchema = new mongoose.Schema(
 
 const orderSchema = new mongoose.Schema(
   {
-    userId:             { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    items:              { type: [orderItemSchema], required: true },
-    address:            { type: addressSchema, required: true },
-    amount:             { type: Number, required: true },   // in rupees
-    razorpayOrderId:    { type: String, required: true },
-    razorpayPaymentId:  { type: String, default: null },
-    razorpaySignature:  { type: String, default: null },
-    status:             { type: String, enum: ['pending', 'paid', 'processing', 'shipped', 'delivered', 'failed', 'cancelled'], default: 'pending' },
-    trackingNote:       { type: String, default: '' },
+    userId:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    items:     { type: [orderItemSchema], required: true },
+    address:   { type: addressSchema, required: true },
+    amount:    { type: Number, required: true },   // in rupees
+    utrNumber: { type: String, default: null },    // UPI transaction reference
+    status:    {
+      type: String,
+      enum: ['pending', 'payment_pending', 'paid', 'processing', 'shipped', 'delivered', 'failed', 'cancelled'],
+      default: 'payment_pending',
+    },
+    trackingNote: { type: String, default: '' },
   },
   { timestamps: true, collection: 'orders' }
 );

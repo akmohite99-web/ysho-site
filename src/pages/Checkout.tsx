@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ShoppingBag, MapPin, CreditCard } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { ShoppingBag, MapPin, Smartphone, Copy, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,12 +23,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { orderApi } from "@/lib/api";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
-declare global {
-  interface Window {
-    Razorpay: new (options: object) => { open: () => void };
-  }
-}
-
 const addressSchema = z.object({
   fullName: z.string().min(2, "Full name is required"),
   phone: z.string().regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),
@@ -40,23 +35,26 @@ const addressSchema = z.object({
 
 type AddressForm = z.infer<typeof addressSchema>;
 
-const loadRazorpayScript = () =>
-  new Promise<boolean>((resolve) => {
-    if (document.getElementById("razorpay-script")) return resolve(true);
-    const script = document.createElement("script");
-    script.id = "razorpay-script";
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
+interface UpiPaymentState {
+  orderId: string;
+  amount: number;
+  upiId: string;
+  upiName: string;
+  upiLink: string;
+}
 
 const Checkout = () => {
   const { items, totalAmount, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [apiError, setApiError] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
+
+  const [apiError, setApiError]           = useState("");
+  const [isProcessing, setIsProcessing]   = useState(false);
+  const [upiState, setUpiState]           = useState<UpiPaymentState | null>(null);
+  const [utr, setUtr]                     = useState("");
+  const [utrError, setUtrError]           = useState("");
+  const [submittingUtr, setSubmittingUtr] = useState(false);
+  const [copied, setCopied]               = useState(false);
 
   useEffect(() => {
     if (items.length === 0) navigate("/cart");
@@ -75,19 +73,11 @@ const Checkout = () => {
     },
   });
 
+  // Step 1 — address submitted → create order, show UPI screen
   const onSubmit = async (address: AddressForm) => {
     setApiError("");
     setIsProcessing(true);
-
-    const loaded = await loadRazorpayScript();
-    if (!loaded) {
-      setApiError("Failed to load payment gateway. Please check your connection.");
-      setIsProcessing(false);
-      return;
-    }
-
     try {
-      // 1. Create order on backend
       const data = await orderApi.create({ items, address });
       if (!data.success) {
         setApiError(data.message || "Failed to create order.");
@@ -95,61 +85,58 @@ const Checkout = () => {
         return;
       }
 
-      const { orderId, razorpayOrderId, amount, currency, keyId } = data;
+      const upiLink =
+        `upi://pay?pa=${encodeURIComponent(data.upiId)}` +
+        `&pn=${encodeURIComponent(data.upiName)}` +
+        `&am=${data.amount}` +
+        `&cu=INR` +
+        `&tn=${encodeURIComponent("Order " + data.orderId)}`;
 
-      // 2. Open Razorpay modal
-      const rzp = new window.Razorpay({
-        key:         keyId,
-        amount,
-        currency,
-        name:        "Ysho A2 Desi Cow Bilona Ghee",
-        description: "Premium A2 Bilona Ghee Order",
-        order_id:    razorpayOrderId,
-        prefill: {
-          name:    user?.name,
-          email:   user?.email,
-          contact: address.phone,
-        },
-        theme:  { color: "#D4A017" },
-        modal: {
-          ondismiss: () => {
-            setApiError("Payment was cancelled. You can try again.");
-            setIsProcessing(false);
-          },
-        },
-        handler: async (response: {
-          razorpay_payment_id: string;
-          razorpay_order_id: string;
-          razorpay_signature: string;
-        }) => {
-          try {
-            // 3. Verify payment on backend
-            const verify = await orderApi.verify({
-              orderId,
-              razorpayOrderId:   response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            });
-
-            if (verify.success) {
-              clearCart();
-              navigate(`/order-confirmation/${orderId}`);
-            } else {
-              setApiError("Payment verification failed. Please contact support.");
-              setIsProcessing(false);
-            }
-          } catch {
-            setApiError("Something went wrong verifying payment. Please contact support.");
-            setIsProcessing(false);
-          }
-        },
+      setUpiState({
+        orderId: data.orderId,
+        amount:  data.amount,
+        upiId:   data.upiId,
+        upiName: data.upiName,
+        upiLink,
       });
-
-      rzp.open();
     } catch {
       setApiError("Something went wrong. Please try again.");
+    } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Step 2 — UTR submitted → confirm order
+  const onSubmitUtr = async () => {
+    if (!upiState) return;
+    setUtrError("");
+
+    if (!utr.trim()) {
+      setUtrError("Please enter your UPI transaction / UTR number.");
+      return;
+    }
+
+    setSubmittingUtr(true);
+    try {
+      const data = await orderApi.submitUtr(upiState.orderId, utr.trim());
+      if (!data.success) {
+        setUtrError(data.message || "Failed to submit UTR.");
+        return;
+      }
+      clearCart();
+      navigate(`/order-confirmation/${upiState.orderId}`);
+    } catch {
+      setUtrError("Something went wrong. Please try again.");
+    } finally {
+      setSubmittingUtr(false);
+    }
+  };
+
+  const copyUpiId = () => {
+    if (!upiState) return;
+    navigator.clipboard.writeText(upiState.upiId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -164,154 +151,259 @@ const Checkout = () => {
 
       <div className="flex-1 container mx-auto px-4 py-10 max-w-5xl">
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
-          <CreditCard className="w-8 h-8 text-golden" />
+          <Smartphone className="w-8 h-8 text-golden" />
           Checkout
         </h1>
 
         <div className="grid lg:grid-cols-5 gap-8">
-          {/* Address form */}
+          {/* Left panel */}
           <div className="lg:col-span-3">
-            <Card className="border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <MapPin className="w-5 h-5 text-golden" />
-                  Delivery Address
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {apiError && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertDescription>{apiError}</AlertDescription>
-                  </Alert>
-                )}
 
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid sm:grid-cols-2 gap-4">
+            {/* ── Step 1: Address form ── */}
+            {!upiState && (
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <MapPin className="w-5 h-5 text-golden" />
+                    Delivery Address
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {apiError && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertDescription>{apiError}</AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="fullName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Recipient's full name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Mobile Number</FormLabel>
+                              <FormControl>
+                                <Input type="tel" placeholder="10-digit mobile" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                       <FormField
                         control={form.control}
-                        name="fullName"
+                        name="line1"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel>Address Line 1</FormLabel>
                             <FormControl>
-                              <Input placeholder="Recipient's full name" {...field} />
+                              <Input placeholder="House/Flat no., Street, Area" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+
                       <FormField
                         control={form.control}
-                        name="phone"
+                        name="line2"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Mobile Number</FormLabel>
+                            <FormLabel>
+                              Address Line 2{" "}
+                              <span className="text-muted-foreground font-normal">(optional)</span>
+                            </FormLabel>
                             <FormControl>
-                              <Input type="tel" placeholder="10-digit mobile" {...field} />
+                              <Input placeholder="Landmark, etc." {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
+                      />
+
+                      <div className="grid sm:grid-cols-3 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <FormControl><Input placeholder="City" {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State</FormLabel>
+                              <FormControl><Input placeholder="State" {...field} /></FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="pincode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Pincode</FormLabel>
+                              <FormControl>
+                                <Input placeholder="6-digit" maxLength={6} {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <Button
+                        type="submit"
+                        variant="golden"
+                        size="lg"
+                        className="w-full mt-2"
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? (
+                          <span className="flex items-center gap-2">
+                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Creating order…
+                          </span>
+                        ) : (
+                          <>
+                            <Smartphone className="w-4 h-4 mr-2" />
+                            Proceed to Pay ₹{totalAmount.toLocaleString("en-IN")}
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ── Step 2: UPI payment ── */}
+            {upiState && (
+              <Card className="border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Smartphone className="w-5 h-5 text-golden" />
+                    Pay via UPI
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+
+                  {/* Amount banner */}
+                  <div className="bg-golden/10 border border-golden/30 rounded-lg p-4 text-center">
+                    <p className="text-sm text-muted-foreground">Amount to pay</p>
+                    <p className="text-4xl font-bold text-golden">
+                      ₹{upiState.amount.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+
+                  {/* QR code */}
+                  <div className="flex flex-col items-center gap-3">
+                    <p className="text-sm font-medium text-muted-foreground">Scan with any UPI app</p>
+                    <div className="p-4 bg-white rounded-xl border border-border/40 shadow-sm">
+                      <QRCodeSVG
+                        value={upiState.upiLink}
+                        size={200}
+                        includeMargin={false}
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      GPay · PhonePe · Paytm · BHIM · Any UPI app
+                    </p>
+                  </div>
 
-                    <FormField
-                      control={form.control}
-                      name="line1"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Address Line 1</FormLabel>
-                          <FormControl>
-                            <Input placeholder="House/Flat no., Street, Area" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <div className="flex items-center gap-3">
+                    <Separator className="flex-1" />
+                    <span className="text-xs text-muted-foreground">or pay manually</span>
+                    <Separator className="flex-1" />
+                  </div>
 
-                    <FormField
-                      control={form.control}
-                      name="line2"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Address Line 2{" "}
-                            <span className="text-muted-foreground font-normal">(optional)</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input placeholder="Landmark, etc." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <FormControl>
-                              <Input placeholder="City" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
+                  {/* UPI ID + deep link */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-2 bg-muted/40 border border-border/40 rounded-lg px-4 py-3">
+                      <div>
+                        <p className="text-xs text-muted-foreground">UPI ID</p>
+                        <p className="font-semibold text-sm">{upiState.upiId}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={copyUpiId} className="gap-1.5 shrink-0">
+                        {copied ? (
+                          <><CheckCircle2 className="w-4 h-4 text-green-500" /> Copied</>
+                        ) : (
+                          <><Copy className="w-4 h-4" /> Copy</>
                         )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="state"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>State</FormLabel>
-                            <FormControl>
-                              <Input placeholder="State" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="pincode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Pincode</FormLabel>
-                            <FormControl>
-                              <Input placeholder="6-digit" maxLength={6} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      </Button>
                     </div>
 
+                    <a href={upiState.upiLink} className="block">
+                      <Button variant="outline" className="w-full gap-2">
+                        <Smartphone className="w-4 h-4" />
+                        Open UPI App
+                      </Button>
+                    </a>
+                  </div>
+
+                  <Separator />
+
+                  {/* UTR entry */}
+                  <div className="space-y-3">
+                    <div>
+                      <p className="font-medium text-sm">After payment, enter your UTR number</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Find it in your UPI app under transaction details (12-digit number)
+                      </p>
+                    </div>
+                    <Input
+                      placeholder="e.g. 123456789012"
+                      value={utr}
+                      onChange={(e) => setUtr(e.target.value)}
+                      maxLength={22}
+                    />
+                    {utrError && (
+                      <p className="text-sm text-destructive">{utrError}</p>
+                    )}
                     <Button
-                      type="submit"
                       variant="golden"
                       size="lg"
-                      className="w-full mt-2"
-                      disabled={isProcessing}
+                      className="w-full"
+                      onClick={onSubmitUtr}
+                      disabled={submittingUtr}
                     >
-                      {isProcessing ? (
+                      {submittingUtr ? (
                         <span className="flex items-center gap-2">
                           <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Processing…
+                          Confirming…
                         </span>
                       ) : (
-                        <>
-                          <CreditCard className="w-4 h-4 mr-2" />
-                          Pay ₹{totalAmount.toLocaleString("en-IN")}
-                        </>
+                        "Confirm Payment"
                       )}
                     </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
+                  </div>
+
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Order summary */}
@@ -364,7 +456,7 @@ const Checkout = () => {
                 </div>
 
                 <div className="mt-4 p-3 bg-golden/5 border border-golden/20 rounded-lg text-xs text-muted-foreground text-center">
-                  Secured by Razorpay · UPI, Cards, Net Banking & Wallets accepted
+                  Pay directly via UPI · 100% free · No transaction fees
                 </div>
               </CardContent>
             </Card>
