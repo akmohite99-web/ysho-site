@@ -7,6 +7,7 @@ const orderRoutes   = require('./routes/orders');
 const userRoutes    = require('./routes/users');
 const adminRoutes   = require('./routes/admin');
 const productRoutes = require('./routes/products');
+const couponRoutes  = require('./routes/coupons');
 const { errorHandler } = require('./middleware/errorHandler');
 
 connectDB();
@@ -32,6 +33,7 @@ app.use('/api/orders',   orderRoutes);
 app.use('/api/users',    userRoutes);
 app.use('/api/admin',    adminRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/coupons',  couponRoutes);
 
 app.use(errorHandler);
 

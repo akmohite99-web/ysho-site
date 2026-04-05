@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package, Pencil, Check, X, Plus, Trash2 } from "lucide-react";
+import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package, Pencil, Check, X, Plus, Trash2, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { adminApi, productApi, Product } from "@/lib/api";
+import { adminApi, productApi, couponApi, Product } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
@@ -43,6 +43,16 @@ interface AdminOrder {
   amount: number;
   status: string;
   createdAt: string;
+}
+
+interface AdminCoupon {
+  _id: string;
+  code: string;
+  discountPercent: number;
+  isActive: boolean;
+  usageLimit: number | null;
+  usedCount: number;
+  expiresAt: string | null;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -99,6 +109,15 @@ const Admin = () => {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [error, setError] = useState("");
 
+  // ── coupons state ──────────────────────────────────────────────────────────
+  const [coupons, setCoupons]             = useState<AdminCoupon[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(true);
+  const [couponForm, setCouponForm]       = useState({ code: "", discountPercent: "", usageLimit: "", expiresAt: "" });
+  const [showCouponForm, setShowCouponForm] = useState(false);
+  const [couponFormError, setCouponFormError] = useState("");
+  const [editCouponId, setEditCouponId]   = useState<string | null>(null);
+  const [editCouponDiscount, setEditCouponDiscount] = useState("");
+
   // ── products state ─────────────────────────────────────────────────────────
   const [products, setProducts]           = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -123,6 +142,11 @@ const Admin = () => {
       .then((d) => { if (d.success) setProducts(d.products); })
       .catch(() => {})
       .finally(() => setLoadingProducts(false));
+
+    couponApi.adminList()
+      .then((d) => { if (d.success) setCoupons(d.coupons); })
+      .catch(() => {})
+      .finally(() => setLoadingCoupons(false));
   }, []);
 
   // ── product handlers ───────────────────────────────────────────────────────
@@ -182,6 +206,50 @@ const Admin = () => {
     if (result.success) {
       setOrders((prev) => prev.map((o) => (o._id === orderId ? { ...o, status } : o)));
     }
+  };
+
+  // ── coupon handlers ────────────────────────────────────────────────────────
+  const createCoupon = async () => {
+    const pct = Number(couponForm.discountPercent);
+    if (!couponForm.code || !pct || pct < 1 || pct > 100) {
+      setCouponFormError("Code and a discount % (1–100) are required.");
+      return;
+    }
+    const res = await couponApi.create({
+      code:            couponForm.code,
+      discountPercent: pct,
+      usageLimit:      couponForm.usageLimit ? Number(couponForm.usageLimit) : null,
+      expiresAt:       couponForm.expiresAt  || null,
+    });
+    if (res.success) {
+      setCoupons((p) => [res.coupon, ...p]);
+      setCouponForm({ code: "", discountPercent: "", usageLimit: "", expiresAt: "" });
+      setShowCouponForm(false);
+      setCouponFormError("");
+    } else {
+      setCouponFormError(res.message || "Failed to create coupon.");
+    }
+  };
+
+  const saveCouponDiscount = async (id: string) => {
+    const pct = Number(editCouponDiscount);
+    if (!pct || pct < 1 || pct > 100) return;
+    const res = await couponApi.update(id, { discountPercent: pct });
+    if (res.success) {
+      setCoupons((p) => p.map((c) => (c._id === id ? res.coupon : c)));
+      setEditCouponId(null);
+    }
+  };
+
+  const toggleCoupon = async (c: AdminCoupon) => {
+    const res = await couponApi.update(c._id, { isActive: !c.isActive });
+    if (res.success) setCoupons((p) => p.map((x) => (x._id === c._id ? res.coupon : x)));
+  };
+
+  const deleteCoupon = async (id: string) => {
+    if (!confirm("Delete this coupon?")) return;
+    const res = await couponApi.delete(id);
+    if (res.success) setCoupons((p) => p.filter((c) => c._id !== id));
   };
 
   // ── derived stats ─────────────────────────────────────────────────────────
@@ -329,6 +397,7 @@ const Admin = () => {
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
+            <TabsTrigger value="coupons">Coupons</TabsTrigger>
           </TabsList>
 
           {/* Orders Tab */}
@@ -542,6 +611,130 @@ const Admin = () => {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          {/* Coupons Tab */}
+          <TabsContent value="coupons">
+            <Card className="border-border/50">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Tag className="w-5 h-5 text-golden" />
+                  Coupon Codes
+                </CardTitle>
+                <Button size="sm" variant="golden" className="gap-1.5" onClick={() => { setShowCouponForm((v) => !v); setCouponFormError(""); }}>
+                  <Plus className="w-4 h-4" />
+                  New Coupon
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {couponFormError && <p className="text-sm text-destructive mb-3">{couponFormError}</p>}
+
+                {showCouponForm && (
+                  <div className="mb-4 p-4 border border-border/40 rounded-lg space-y-3">
+                    <p className="text-sm font-medium">Create Coupon</p>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <Input
+                        placeholder="Code (e.g. SAVE10)"
+                        value={couponForm.code}
+                        onChange={(e) => setCouponForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+                        className="uppercase"
+                      />
+                      <Input
+                        type="number" min="1" max="100"
+                        placeholder="Discount % (1–100)"
+                        value={couponForm.discountPercent}
+                        onChange={(e) => setCouponForm((f) => ({ ...f, discountPercent: e.target.value }))}
+                      />
+                      <Input
+                        type="number" min="1"
+                        placeholder="Usage limit (leave blank = unlimited)"
+                        value={couponForm.usageLimit}
+                        onChange={(e) => setCouponForm((f) => ({ ...f, usageLimit: e.target.value }))}
+                      />
+                      <Input
+                        type="date"
+                        placeholder="Expiry date (optional)"
+                        value={couponForm.expiresAt}
+                        onChange={(e) => setCouponForm((f) => ({ ...f, expiresAt: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="golden" onClick={createCoupon}><Check className="w-4 h-4 mr-1" /> Create</Button>
+                      <Button size="sm" variant="ghost" onClick={() => { setShowCouponForm(false); setCouponFormError(""); }}><X className="w-4 h-4 mr-1" /> Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
+                {loadingCoupons ? (
+                  <div className="flex justify-center py-12">
+                    <div className="w-8 h-8 rounded-full border-4 border-golden border-t-transparent animate-spin" />
+                  </div>
+                ) : coupons.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-12">No coupons yet. Create one above.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border/40 text-muted-foreground text-left">
+                          <th className="pb-2 font-medium">Code</th>
+                          <th className="pb-2 font-medium">Discount</th>
+                          <th className="pb-2 font-medium">Used / Limit</th>
+                          <th className="pb-2 font-medium">Expires</th>
+                          <th className="pb-2 font-medium">Status</th>
+                          <th className="pb-2 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/30">
+                        {coupons.map((c) => (
+                          <tr key={c._id} className={`hover:bg-muted/30 ${!c.isActive ? "opacity-50" : ""}`}>
+                            <td className="py-2.5 pr-4 font-mono font-semibold">{c.code}</td>
+                            <td className="py-2.5 pr-4">
+                              {editCouponId === c._id ? (
+                                <div className="flex items-center gap-1">
+                                  <Input
+                                    type="number" min="1" max="100"
+                                    className="h-7 w-20 text-xs"
+                                    value={editCouponDiscount}
+                                    onChange={(e) => setEditCouponDiscount(e.target.value)}
+                                  />
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => saveCouponDiscount(c._id)}><Check className="w-3 h-3" /></Button>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditCouponId(null)}><X className="w-3 h-3" /></Button>
+                                </div>
+                              ) : (
+                                <span className="font-medium text-golden">{c.discountPercent}%</span>
+                              )}
+                            </td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">
+                              {c.usedCount} / {c.usageLimit ?? "∞"}
+                            </td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">
+                              {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString("en-IN") : "Never"}
+                            </td>
+                            <td className="py-2.5 pr-4">
+                              <Badge
+                                className={`text-xs cursor-pointer ${c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"}`}
+                                onClick={() => toggleCoupon(c)}
+                              >
+                                {c.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                            </td>
+                            <td className="py-2.5">
+                              <div className="flex gap-1">
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setEditCouponId(c._id); setEditCouponDiscount(String(c.discountPercent)); }}>
+                                  <Pencil className="w-3 h-3" />
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => deleteCoupon(c._id)}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </CardContent>

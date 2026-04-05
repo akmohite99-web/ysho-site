@@ -29,8 +29,12 @@ const orderSchema = new mongoose.Schema(
     userId:    { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     items:     { type: [orderItemSchema], required: true },
     address:   { type: addressSchema, required: true },
-    amount:    { type: Number, required: true },   // in rupees
-    utrNumber: { type: String, default: null },    // UPI transaction reference
+    amount:          { type: Number, required: true },   // final payable amount in rupees
+    originalAmount:  { type: Number, default: null },   // before discount
+    couponCode:      { type: String, default: null },
+    discountPercent: { type: Number, default: 0 },
+    discountAmount:  { type: Number, default: 0 },
+    utrNumber:       { type: String, default: null },   // UPI transaction reference
     status:    {
       type: String,
       enum: ['pending', 'payment_pending', 'paid', 'processing', 'shipped', 'delivered', 'failed', 'cancelled'],

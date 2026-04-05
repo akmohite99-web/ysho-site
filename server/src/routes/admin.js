@@ -2,6 +2,7 @@ const express = require('express');
 const User    = require('../models/User');
 const Order   = require('../models/Order');
 const Product = require('../models/Product');
+const Coupon  = require('../models/Coupon');
 const { adminProtect } = require('../middleware/adminAuth');
 
 const router = express.Router();
@@ -85,6 +86,60 @@ router.put('/products/:id', adminProtect, async (req, res, next) => {
 router.delete('/products/:id', adminProtect, async (req, res, next) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+// ── Coupon CRUD ───────────────────────────────────────────────────────────────
+
+// GET /api/admin/coupons
+router.get('/coupons', adminProtect, async (req, res, next) => {
+  try {
+    const coupons = await Coupon.find({}).sort({ createdAt: -1 });
+    res.json({ success: true, coupons });
+  } catch (err) { next(err); }
+});
+
+// POST /api/admin/coupons
+router.post('/coupons', adminProtect, async (req, res, next) => {
+  try {
+    const { code, discountPercent, usageLimit, expiresAt } = req.body;
+    if (!code || !discountPercent) {
+      return res.status(400).json({ success: false, message: 'Code and discountPercent are required.' });
+    }
+    const coupon = await Coupon.create({
+      code: code.toUpperCase().trim(),
+      discountPercent,
+      usageLimit: usageLimit || null,
+      expiresAt:  expiresAt  || null,
+    });
+    res.status(201).json({ success: true, coupon });
+  } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ success: false, message: 'Coupon code already exists.' });
+    next(err);
+  }
+});
+
+// PUT /api/admin/coupons/:id
+router.put('/coupons/:id', adminProtect, async (req, res, next) => {
+  try {
+    const { discountPercent, isActive, usageLimit, expiresAt } = req.body;
+    const update = {};
+    if (discountPercent != null) update.discountPercent = discountPercent;
+    if (isActive        != null) update.isActive        = isActive;
+    if (usageLimit      != null) update.usageLimit      = usageLimit || null;
+    if (expiresAt       != null) update.expiresAt       = expiresAt  || null;
+
+    const coupon = await Coupon.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
+    if (!coupon) return res.status(404).json({ success: false, message: 'Coupon not found.' });
+    res.json({ success: true, coupon });
+  } catch (err) { next(err); }
+});
+
+// DELETE /api/admin/coupons/:id
+router.delete('/coupons/:id', adminProtect, async (req, res, next) => {
+  try {
+    await Coupon.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (err) { next(err); }
 });

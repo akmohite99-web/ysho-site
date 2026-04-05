@@ -55,7 +55,7 @@ interface OrderItem {
 }
 
 export const orderApi = {
-  create: (data: { items: OrderItem[]; address: OrderAddress }) =>
+  create: (data: { items: OrderItem[]; address: OrderAddress; couponCode?: string | null }) =>
     fetch(`${BASE}/orders/create`, {
       method: "POST",
       headers: {
@@ -112,6 +112,38 @@ export interface Product {
   image: string;
   isActive: boolean;
 }
+
+export const couponApi = {
+  validate: (code: string) =>
+    fetch(`${BASE}/coupons/validate`, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({ code }),
+    }).then((r) => r.json()),
+
+  adminList: () =>
+    fetch(`${BASE}/admin/coupons`, { headers: authHeader() }).then((r) => r.json()),
+
+  create: (data: { code: string; discountPercent: number; usageLimit?: number | null; expiresAt?: string | null }) =>
+    fetch(`${BASE}/admin/coupons`, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  update: (id: string, data: Partial<{ discountPercent: number; isActive: boolean; usageLimit: number | null; expiresAt: string | null }>) =>
+    fetch(`${BASE}/admin/coupons/${id}`, {
+      method: "PUT",
+      headers: jsonHeaders(),
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  delete: (id: string) =>
+    fetch(`${BASE}/admin/coupons/${id}`, {
+      method: "DELETE",
+      headers: authHeader(),
+    }).then((r) => r.json()),
+};
 
 export const productApi = {
   list: () =>

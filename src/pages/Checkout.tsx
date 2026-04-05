@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { QRCodeSVG } from "qrcode.react";
-import { ShoppingBag, MapPin, Smartphone, Copy, CheckCircle2 } from "lucide-react";
+import { ShoppingBag, MapPin, Smartphone, Copy, CheckCircle2, Tag, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { orderApi, userApi, SavedAddress } from "@/lib/api";
+import { orderApi, userApi, couponApi, SavedAddress } from "@/lib/api";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
 const addressSchema = z.object({
@@ -57,6 +57,10 @@ const Checkout = () => {
   const [copied, setCopied]               = useState(false);
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [couponInput, setCouponInput]       = useState("");
+  const [couponLoading, setCouponLoading]   = useState(false);
+  const [couponError, setCouponError]       = useState("");
+  const [appliedCoupon, setAppliedCoupon]   = useState<{ code: string; discountPercent: number } | null>(null);
 
   useEffect(() => {
     if (items.length === 0) navigate("/cart");
@@ -109,12 +113,40 @@ const Checkout = () => {
     });
   };
 
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    setCouponError("");
+    setCouponLoading(true);
+    try {
+      const res = await couponApi.validate(code);
+      if (res.success) {
+        setAppliedCoupon({ code: res.code, discountPercent: res.discountPercent });
+        setCouponInput("");
+      } else {
+        setCouponError(res.message || "Invalid coupon.");
+      }
+    } catch {
+      setCouponError("Could not validate coupon. Try again.");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponError("");
+  };
+
+  const discountAmount  = appliedCoupon ? Math.round(totalAmount * appliedCoupon.discountPercent / 100) : 0;
+  const finalAmount     = totalAmount - discountAmount;
+
   // Step 1 — address submitted → create order, show UPI screen
   const onSubmit = async (address: AddressForm) => {
     setApiError("");
     setIsProcessing(true);
     try {
-      const data = await orderApi.create({ items, address });
+      const data = await orderApi.create({ items, address, couponCode: appliedCoupon?.code ?? null });
       if (!data.success) {
         setApiError(data.message || "Failed to create order.");
         setIsProcessing(false);
@@ -365,7 +397,7 @@ const Checkout = () => {
                         ) : (
                           <>
                             <Smartphone className="w-4 h-4 mr-2" />
-                            Proceed to Pay ₹{totalAmount.toLocaleString("en-IN")}
+                            Proceed to Pay ₹{finalAmount.toLocaleString("en-IN")}
                           </>
                         )}
                       </Button>
@@ -512,11 +544,49 @@ const Checkout = () => {
 
                 <Separator className="my-4" />
 
+                {/* Coupon input */}
+                {!upiState && (
+                  <div className="mb-4">
+                    {appliedCoupon ? (
+                      <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2 text-sm text-green-700">
+                          <Tag className="w-4 h-4" />
+                          <span className="font-semibold">{appliedCoupon.code}</span>
+                          <span>— {appliedCoupon.discountPercent}% off</span>
+                        </div>
+                        <button onClick={removeCoupon} className="text-green-600 hover:text-green-800">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Coupon code"
+                          value={couponInput}
+                          onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
+                          onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                          className="uppercase text-sm h-9"
+                        />
+                        <Button size="sm" variant="outline" onClick={applyCoupon} disabled={couponLoading || !couponInput.trim()} className="shrink-0 h-9">
+                          {couponLoading ? <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : "Apply"}
+                        </Button>
+                      </div>
+                    )}
+                    {couponError && <p className="text-xs text-destructive mt-1">{couponError}</p>}
+                  </div>
+                )}
+
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal</span>
                     <span>₹{totalAmount.toLocaleString("en-IN")}</span>
                   </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-green-600 font-medium">
+                      <span>Discount ({appliedCoupon.discountPercent}%)</span>
+                      <span>− ₹{discountAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-muted-foreground">
                     <span>Shipping</span>
                     <span className="text-ysho-green font-medium">FREE</span>
@@ -527,7 +597,7 @@ const Checkout = () => {
 
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span className="text-golden">₹{totalAmount.toLocaleString("en-IN")}</span>
+                  <span className="text-golden">₹{finalAmount.toLocaleString("en-IN")}</span>
                 </div>
 
                 <div className="mt-4 p-3 bg-golden/5 border border-golden/20 rounded-lg text-xs text-muted-foreground text-center">
