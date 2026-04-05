@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package, Pencil, Check, X, Plus, Trash2, Tag } from "lucide-react";
+import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package, Pencil, Check, X, Plus, Trash2, Tag, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -42,6 +42,7 @@ interface AdminOrder {
   address: { fullName: string; city: string; state: string; pincode: string };
   amount: number;
   status: string;
+  trackingNumber?: string | null;
   createdAt: string;
 }
 
@@ -205,6 +206,18 @@ const Admin = () => {
     const result = await adminApi.updateOrderStatus(orderId, status);
     if (result.success) {
       setOrders((prev) => prev.map((o) => (o._id === orderId ? { ...o, status } : o)));
+    }
+  };
+
+  // ── tracking handlers ──────────────────────────────────────────────────────
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+
+  const handleSetTracking = async (orderId: string) => {
+    const num = (trackingInputs[orderId] ?? "").trim();
+    const res = await adminApi.setTrackingNumber(orderId, num);
+    if (res.success) {
+      setOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, trackingNumber: res.order.trackingNumber } : o));
+      setTrackingInputs((p) => ({ ...p, [orderId]: "" }));
     }
   };
 
@@ -454,6 +467,36 @@ const Admin = () => {
                           </div>
                         </div>
                         <Separator className="my-2" />
+                        {/* Tracking number */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <Truck className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          {order.trackingNumber ? (
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="text-xs font-mono text-golden font-medium">{order.trackingNumber}</span>
+                              <button
+                                className="text-xs text-muted-foreground hover:text-destructive"
+                                onClick={() => {
+                                  setTrackingInputs((p) => ({ ...p, [order._id]: order.trackingNumber ?? "" }));
+                                  setOrders((prev) => prev.map((o) => o._id === order._id ? { ...o, trackingNumber: null } : o));
+                                  adminApi.setTrackingNumber(order._id, "");
+                                }}
+                              >remove</button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 flex-1">
+                              <Input
+                                className="h-6 text-xs flex-1 font-mono"
+                                placeholder="India Post consignment no."
+                                value={trackingInputs[order._id] ?? ""}
+                                onChange={(e) => setTrackingInputs((p) => ({ ...p, [order._id]: e.target.value.toUpperCase() }))}
+                                onKeyDown={(e) => e.key === "Enter" && handleSetTracking(order._id)}
+                              />
+                              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => handleSetTracking(order._id)}>
+                                <Check className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                         <div className="space-y-1">
                           {order.items.map((item, i) => (
                             <div key={i} className="flex justify-between text-xs text-muted-foreground">

@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(curl -s -o /dev/null -w 'STATUS: %{http_code}\\\\n' 'https://www.indiapost.gov.in/VAS/Pages/trackconsignment.aspx?TrackNo=EW123456789IN')",
+      "Bash(curl -s -o /dev/null -w 'STATUS: %{http_code}\\\\n' 'https://tracking.indiapost.gov.in/TrackConsignment.aspx?ConsignmentNo=EW123456789IN')",
+      "Bash(curl -s -o /dev/null -w '%{http_code} %{url_effective}\\\\n' https://www.indiapost.gov.in/VAS/Pages/trackconsignment.aspx)",
+      "Bash(curl -s -o /dev/null -w '%{http_code} %{url_effective}\\\\n' https://www.indiapost.gov.in/track)",
+      "Bash(curl -s -o /dev/null -w '%{http_code} %{url_effective}\\\\n' https://www.indiapost.gov.in/tracking)",
+      "Bash(curl -s 'https://www.indiapost.gov.in/robots.txt')"
     ]
   }
 }

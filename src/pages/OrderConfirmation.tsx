@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { orderApi } from "@/lib/api";
+import IndiaPostTracking from "@/components/IndiaPostTracking";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
 interface Order {
@@ -13,6 +14,7 @@ interface Order {
   address: { fullName: string; phone: string; line1: string; line2?: string; city: string; state: string; pincode: string };
   amount: number;
   utrNumber?: string;
+  trackingNumber?: string | null;
   status: string;
   createdAt: string;
 }
@@ -126,6 +128,15 @@ const OrderConfirmation = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* India Post Tracking */}
+            {order && ["shipped", "delivered"].includes(order.status) && (
+              <Card className="border-border/50">
+                <CardContent className="p-5">
+                  <IndiaPostTracking orderId={order._id} />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Address */}
             <Card className="border-border/50">

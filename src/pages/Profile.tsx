@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { userApi, orderApi, type SavedAddress } from "@/lib/api";
+import IndiaPostTracking from "@/components/IndiaPostTracking";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -33,7 +34,8 @@ interface Order {
   items: { productId: string; name: string; variant: string; price: number; quantity: number }[];
   address: { fullName: string; phone: string; line1: string; line2?: string; city: string; state: string; pincode: string };
   amount: number;
-  razorpayPaymentId: string;
+  utrNumber?: string;
+  trackingNumber?: string | null;
   status: string;
   createdAt: string;
 }
@@ -534,9 +536,17 @@ const Profile = () => {
                           <div className="mt-4">
                             <Separator className="mb-4" />
 
-                            {/* Tracking */}
-                            <p className="text-sm font-semibold mb-1">Order Tracking</p>
+                            {/* Order status stepper */}
+                            <p className="text-sm font-semibold mb-1">Order Status</p>
                             <OrderTracker status={order.status} />
+
+                            {/* India Post live tracking */}
+                            {["shipped", "delivered"].includes(order.status) && (
+                              <>
+                                <Separator className="my-4" />
+                                <IndiaPostTracking orderId={order._id} />
+                              </>
+                            )}
 
                             <Separator className="my-4" />
 

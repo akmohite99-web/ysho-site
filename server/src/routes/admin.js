@@ -90,6 +90,20 @@ router.delete('/products/:id', adminProtect, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// PATCH /api/admin/orders/:id/tracking — set India Post consignment number
+router.patch('/orders/:id/tracking', adminProtect, async (req, res, next) => {
+  try {
+    const { trackingNumber } = req.body;
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { trackingNumber: trackingNumber?.trim() || null },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+    res.json({ success: true, order });
+  } catch (err) { next(err); }
+});
+
 // ── Coupon CRUD ───────────────────────────────────────────────────────────────
 
 // GET /api/admin/coupons

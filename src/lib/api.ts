@@ -84,6 +84,11 @@ export const orderApi = {
     fetch(`${BASE}/orders/my`, {
       headers: { Authorization: `Bearer ${getToken()}` },
     }).then((res) => res.json()),
+
+  getTracking: (id: string) =>
+    fetch(`${BASE}/orders/${id}/tracking`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then((r) => r.json()),
 };
 
 export interface SavedAddress {
@@ -185,6 +190,13 @@ export const adminApi = {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ status }),
+    }).then((r) => r.json()),
+
+  setTrackingNumber: (id: string, trackingNumber: string) =>
+    fetch(`${BASE}/admin/orders/${id}/tracking`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ trackingNumber }),
     }).then((r) => r.json()),
 };
 

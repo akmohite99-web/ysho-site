@@ -35,6 +35,7 @@ const orderSchema = new mongoose.Schema(
     discountPercent: { type: Number, default: 0 },
     discountAmount:  { type: Number, default: 0 },
     utrNumber:       { type: String, default: null },   // UPI transaction reference
+    trackingNumber:  { type: String, default: null },  // India Post consignment number
     status:    {
       type: String,
       enum: ['pending', 'payment_pending', 'paid', 'processing', 'shipped', 'delivered', 'failed', 'cancelled'],

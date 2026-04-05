@@ -93,6 +93,18 @@ router.post('/:id/utr', protect, async (req, res, next) => {
   }
 });
 
+// GET /api/orders/:id/tracking  —  return stored tracking number
+router.get('/:id/tracking', protect, async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, userId: req.userId }).select('trackingNumber');
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+    if (!order.trackingNumber) return res.json({ success: true, available: false });
+    res.json({ success: true, available: true, trackingNumber: order.trackingNumber });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/orders/my  —  current user's order history
 router.get('/my', protect, async (req, res, next) => {
   try {
