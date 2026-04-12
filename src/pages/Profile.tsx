@@ -575,14 +575,6 @@ const Profile = () => {
                               <p>{order.address.phone}</p>
                             </div>
 
-                            {order.razorpayPaymentId && (
-                              <>
-                                <Separator className="my-4" />
-                                <p className="text-xs text-muted-foreground">
-                                  Payment ID: <span className="font-mono">{order.razorpayPaymentId}</span>
-                                </p>
-                              </>
-                            )}
                           </div>
                         )}
                       </CardContent>
