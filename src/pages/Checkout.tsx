@@ -219,7 +219,7 @@ const Checkout = () => {
 
       <div className="flex-1 container mx-auto px-4 py-10 max-w-5xl">
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
-          <Smartphone className="w-8 h-8 text-golden" />
+          <Smartphone className="w-8 h-8 text-warm-brown" />
           Checkout
         </h1>
 
@@ -232,7 +232,7 @@ const Checkout = () => {
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl">
-                    <MapPin className="w-5 h-5 text-golden" />
+                    <MapPin className="w-5 h-5 text-warm-brown" />
                     Delivery Address
                   </CardTitle>
                 </CardHeader>
@@ -260,13 +260,13 @@ const Checkout = () => {
                           >
                             <CheckCircle2
                               className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                                selectedAddressId === addr._id ? "text-golden" : "text-muted-foreground/30"
+                                selectedAddressId === addr._id ? "text-warm-brown" : "text-muted-foreground/30"
                               }`}
                             />
                             <div>
                               <span className="font-medium capitalize">{addr.label}</span>
                               {addr.isDefault && (
-                                <span className="ml-2 text-xs text-golden">(Default)</span>
+                                <span className="ml-2 text-xs text-warm-brown">(Default)</span>
                               )}
                               <p className="text-muted-foreground mt-0.5">
                                 {addr.fullName} · {addr.phone}
@@ -412,7 +412,7 @@ const Checkout = () => {
               <Card className="border-border/50">
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-xl">
-                    <Smartphone className="w-5 h-5 text-golden" />
+                    <Smartphone className="w-5 h-5 text-warm-brown" />
                     Pay via UPI
                   </CardTitle>
                 </CardHeader>
@@ -421,7 +421,7 @@ const Checkout = () => {
                   {/* Amount banner */}
                   <div className="bg-golden/10 border border-golden/30 rounded-lg p-4 text-center">
                     <p className="text-sm text-muted-foreground">Amount to pay</p>
-                    <p className="text-4xl font-bold text-golden">
+                    <p className="text-4xl font-bold text-warm-brown">
                       ₹{upiState.amount.toLocaleString("en-IN")}
                     </p>
                   </div>
@@ -518,7 +518,7 @@ const Checkout = () => {
             <Card className="border-border/50 sticky top-24">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-xl">
-                  <ShoppingBag className="w-5 h-5 text-golden" />
+                  <ShoppingBag className="w-5 h-5 text-warm-brown" />
                   Order Summary
                 </CardTitle>
               </CardHeader>
@@ -597,7 +597,7 @@ const Checkout = () => {
 
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span className="text-golden">₹{finalAmount.toLocaleString("en-IN")}</span>
+                  <span className="text-warm-brown">₹{finalAmount.toLocaleString("en-IN")}</span>
                 </div>
 
                 <div className="mt-4 p-3 bg-golden/5 border border-golden/20 rounded-lg text-xs text-muted-foreground text-center">

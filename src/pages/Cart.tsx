@@ -32,7 +32,7 @@ const Cart = () => {
 
       <div className="flex-1 container mx-auto px-4 py-10 max-w-4xl">
         <h1 className="text-3xl font-bold text-foreground mb-8 flex items-center gap-3">
-          <ShoppingCart className="w-8 h-8 text-golden" />
+          <ShoppingCart className="w-8 h-8 text-warm-brown" />
           Your Cart
           {totalItems > 0 && (
             <span className="text-lg font-normal text-muted-foreground">({totalItems} item{totalItems > 1 ? "s" : ""})</span>
@@ -41,7 +41,7 @@ const Cart = () => {
 
         {items.length === 0 ? (
           <div className="text-center py-24">
-            <ShoppingBag className="w-20 h-20 text-golden/30 mx-auto mb-6" />
+            <ShoppingBag className="w-20 h-20 text-warm-brown/30 mx-auto mb-6" />
             <h2 className="text-2xl font-semibold text-muted-foreground mb-2">Your cart is empty</h2>
             <p className="text-muted-foreground mb-8">Add our premium ghee to get started.</p>
             <Button variant="golden" size="lg" asChild>
@@ -64,7 +64,7 @@ const Cart = () => {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-foreground leading-tight">{item.name}</h3>
                         <p className="text-sm text-muted-foreground mt-0.5">{item.variant}</p>
-                        <p className="text-golden font-bold text-lg mt-1">₹{item.price.toLocaleString("en-IN")}</p>
+                        <p className="text-warm-brown font-bold text-lg mt-1">₹{item.price.toLocaleString("en-IN")}</p>
 
                         <div className="flex items-center justify-between mt-3">
                           {/* Quantity controls */}
@@ -134,7 +134,7 @@ const Cart = () => {
 
                   <div className="flex justify-between font-bold text-lg mb-6">
                     <span>Total</span>
-                    <span className="text-golden">₹{totalAmount.toLocaleString("en-IN")}</span>
+                    <span className="text-warm-brown">₹{totalAmount.toLocaleString("en-IN")}</span>
                   </div>
 
                   <Button

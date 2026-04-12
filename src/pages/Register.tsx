@@ -109,9 +109,9 @@ const Register = () => {
         <Card className="w-full max-w-md animate-fade-in shadow-xl border-border/50">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-golden/10 flex items-center justify-center">
-              <UserPlus className="w-8 h-8 text-golden" />
+              <UserPlus className="w-8 h-8 text-warm-brown" />
             </div>
-            <CardTitle className="text-3xl font-bold text-golden">Create Account</CardTitle>
+            <CardTitle className="text-3xl font-bold text-warm-brown">Create Account</CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
               Join the Ysho A2 Desi Cow Bilona Ghee family
             </CardDescription>
@@ -260,7 +260,7 @@ const Register = () => {
 
             <p className="text-center text-sm text-muted-foreground mt-6">
               Already have an account?{" "}
-              <Link to="/login" className="font-medium text-golden hover:underline">
+              <Link to="/login" className="font-medium text-warm-brown hover:underline">
                 Sign in
               </Link>
             </p>

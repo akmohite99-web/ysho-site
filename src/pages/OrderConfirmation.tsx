@@ -81,7 +81,7 @@ const OrderConfirmation = () => {
             <Card className="border-border/50">
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-3 font-semibold text-foreground">
-                  <Receipt className="w-5 h-5 text-golden" />
+                  <Receipt className="w-5 h-5 text-warm-brown" />
                   Payment Details
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -107,7 +107,7 @@ const OrderConfirmation = () => {
             <Card className="border-border/50">
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-3 font-semibold text-foreground">
-                  <Package className="w-5 h-5 text-golden" />
+                  <Package className="w-5 h-5 text-warm-brown" />
                   Items Ordered
                 </div>
                 <div className="space-y-3">
@@ -124,7 +124,7 @@ const OrderConfirmation = () => {
                 <Separator className="my-3" />
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span className="text-golden">₹{order.amount.toLocaleString("en-IN")}</span>
+                  <span className="text-warm-brown">₹{order.amount.toLocaleString("en-IN")}</span>
                 </div>
               </CardContent>
             </Card>
@@ -142,7 +142,7 @@ const OrderConfirmation = () => {
             <Card className="border-border/50">
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-3 font-semibold text-foreground">
-                  <MapPin className="w-5 h-5 text-golden" />
+                  <MapPin className="w-5 h-5 text-warm-brown" />
                   Delivery Address
                 </div>
                 <div className="text-sm text-muted-foreground leading-relaxed">

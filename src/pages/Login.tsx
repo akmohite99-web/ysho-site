@@ -75,9 +75,9 @@ const Login = () => {
         <Card className="w-full max-w-md animate-fade-in shadow-xl border-border/50">
           <CardHeader className="text-center pb-2">
             <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-golden/10 flex items-center justify-center">
-              <LogIn className="w-8 h-8 text-golden" />
+              <LogIn className="w-8 h-8 text-warm-brown" />
             </div>
-            <CardTitle className="text-3xl font-bold text-golden">Welcome Back</CardTitle>
+            <CardTitle className="text-3xl font-bold text-warm-brown">Welcome Back</CardTitle>
             <CardDescription className="text-muted-foreground mt-1">
               Sign in to your Ysho account
             </CardDescription>
@@ -161,7 +161,7 @@ const Login = () => {
 
             <p className="text-center text-sm text-muted-foreground mt-6">
               Don&apos;t have an account?{" "}
-              <Link to="/register" className="font-medium text-golden hover:underline">
+              <Link to="/register" className="font-medium text-warm-brown hover:underline">
                 Create one
               </Link>
             </p>

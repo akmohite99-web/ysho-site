@@ -54,7 +54,7 @@ const STATUS_ORDER = ["pending", "paid", "processing", "shipped", "delivered"];
 const statusBadgeVariant = (status: string) => {
   if (status === "delivered") return "bg-ysho-green/10 text-ysho-green border-ysho-green/20";
   if (status === "shipped")   return "bg-blue-50 text-blue-600 border-blue-200";
-  if (status === "paid" || status === "processing") return "bg-golden/10 text-golden border-golden/20";
+  if (status === "paid" || status === "processing") return "bg-golden/10 text-warm-brown border-golden/20";
   if (status === "failed" || status === "cancelled") return "bg-destructive/10 text-destructive border-destructive/20";
   return "bg-muted text-muted-foreground border-border";
 };
@@ -233,7 +233,7 @@ const OrderTracker = ({ status }: { status: string }) => {
                 {done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
               </div>
               <span className={`text-[10px] text-center w-16 leading-tight
-                ${active ? "text-golden font-semibold" : done ? "text-ysho-green" : "text-muted-foreground"}`}>
+                ${active ? "text-warm-brown font-semibold" : done ? "text-ysho-green" : "text-muted-foreground"}`}>
                 {step.label}
               </span>
             </div>
@@ -328,7 +328,7 @@ const Profile = () => {
         {/* Page title */}
         <div className="flex items-center gap-3 mb-8">
           <div className="w-14 h-14 rounded-full bg-golden/10 flex items-center justify-center flex-shrink-0">
-            <User className="w-7 h-7 text-golden" />
+            <User className="w-7 h-7 text-warm-brown" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">{user?.name}</h1>
@@ -416,7 +416,7 @@ const Profile = () => {
             ) : addresses.length === 0 ? (
               <Card className="border-border/50 border-dashed">
                 <CardContent className="py-12 text-center">
-                  <MapPin className="w-12 h-12 text-golden/30 mx-auto mb-3" />
+                  <MapPin className="w-12 h-12 text-warm-brown/30 mx-auto mb-3" />
                   <p className="text-muted-foreground mb-4">No saved addresses yet.</p>
                   <Button variant="golden" size="sm" onClick={() => { setEditingAddr(null); setDialogOpen(true); }}>
                     <Plus className="w-4 h-4 mr-1.5" />Add Your First Address
@@ -434,7 +434,7 @@ const Profile = () => {
                             {labelIcon(addr.label)}{addr.label}
                           </Badge>
                           {addr.isDefault && (
-                            <Badge className="bg-golden/10 text-golden border-golden/20 text-xs">Default</Badge>
+                            <Badge className="bg-golden/10 text-warm-brown border-golden/20 text-xs">Default</Badge>
                           )}
                         </div>
                         <div className="flex gap-1">
@@ -453,7 +453,7 @@ const Profile = () => {
                       <p className="text-sm text-muted-foreground">{addr.city}, {addr.state} — {addr.pincode}</p>
                       <p className="text-sm text-muted-foreground mt-0.5">{addr.phone}</p>
                       {!addr.isDefault && (
-                        <button onClick={() => handleSetDefault(addr._id)} className="mt-3 text-xs text-golden hover:underline">
+                        <button onClick={() => handleSetDefault(addr._id)} className="mt-3 text-xs text-warm-brown hover:underline">
                           Set as default
                         </button>
                       )}
@@ -482,7 +482,7 @@ const Profile = () => {
             ) : orders.length === 0 ? (
               <Card className="border-border/50 border-dashed">
                 <CardContent className="py-12 text-center">
-                  <ShoppingBag className="w-12 h-12 text-golden/30 mx-auto mb-3" />
+                  <ShoppingBag className="w-12 h-12 text-warm-brown/30 mx-auto mb-3" />
                   <p className="text-muted-foreground mb-4">No orders yet.</p>
                   <Button variant="golden" size="sm" asChild>
                     <Link to="/">Shop Now</Link>
@@ -509,7 +509,7 @@ const Profile = () => {
                             </p>
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="font-bold text-golden">₹{order.amount.toLocaleString("en-IN")}</span>
+                            <span className="font-bold text-warm-brown">₹{order.amount.toLocaleString("en-IN")}</span>
                             <Badge variant="outline" className={`capitalize text-xs ${statusBadgeVariant(order.status)}`}>
                               {order.status}
                             </Badge>
