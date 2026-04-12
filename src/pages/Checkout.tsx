@@ -213,7 +213,7 @@ const Checkout = () => {
       <header className="py-4 px-6 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <Link to="/" className="flex items-center gap-2 w-fit">
           <img src={yshoLogo} alt="Ysho Logo" className="h-10 w-auto rounded-full" />
-          <span className="text-xl font-bold text-golden">Ysho Essence of Nature</span>
+          <span className="text-xl font-bold text-warm-brown">Ysho Essence of Nature</span>
         </Link>
       </header>
 

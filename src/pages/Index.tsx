@@ -68,7 +68,7 @@ const Index = () => {
           <nav className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <img src={yshoLogo} alt="Ysho Essence of Nature Logo" className="h-12 w-auto rounded-full" />
-              <h1 className="text-2xl font-bold text-golden">Ysho Essence of Nature</h1>
+              <h1 className="text-2xl font-bold text-warm-brown">Ysho Essence of Nature</h1>
             </div>
             <div className="hidden md:flex items-center space-x-6">
               <a href="#home" className="text-foreground hover:text-golden transition-colors">Home</a>
@@ -131,7 +131,7 @@ const Index = () => {
               </Badge>
               <h1 className="text-5xl lg:text-6xl font-bold mb-2 leading-tight">
                 <span className="text-ysho-green">Ysho</span>{" "}
-                <span className="text-golden">A2 Desi Cow Bilona Ghee</span>
+                <span className="text-warm-brown">A2 Desi Cow Bilona Ghee</span>
               </h1>
               <p className="text-xl lg:text-2xl font-medium text-muted-foreground mb-6">
                 <span className="text-foreground">Pure </span>
