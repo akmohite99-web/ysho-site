@@ -7,7 +7,9 @@
       "Bash(curl -s -o /dev/null -w '%{http_code} %{url_effective}\\\\n' https://www.indiapost.gov.in/VAS/Pages/trackconsignment.aspx)",
       "Bash(curl -s -o /dev/null -w '%{http_code} %{url_effective}\\\\n' https://www.indiapost.gov.in/track)",
       "Bash(curl -s -o /dev/null -w '%{http_code} %{url_effective}\\\\n' https://www.indiapost.gov.in/tracking)",
-      "Bash(curl -s 'https://www.indiapost.gov.in/robots.txt')"
+      "Bash(curl -s 'https://www.indiapost.gov.in/robots.txt')",
+      "Bash(aws ec2:*)",
+      "Bash(chmod 400 ~/.ssh/ysho-key.pem)"
     ]
   }
 }
