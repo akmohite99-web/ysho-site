@@ -14,6 +14,9 @@ connectDB();
 
 const app = express();
 
+// Trust nginx proxy so rate limiter reads real client IPs
+app.set('trust proxy', 1);
+
 app.use(
   cors({
     // In development allow all origins (Vite may use IPv6 [::1] or 127.0.0.1).

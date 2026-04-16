@@ -22,6 +22,34 @@ export const authApi = {
       body: JSON.stringify(data),
     }).then((res) => res.json()),
 
+  verifyEmail: (email: string, code: string) =>
+    fetch(`${BASE}/auth/verify-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code }),
+    }).then((res) => res.json()),
+
+  resendCode: (email: string) =>
+    fetch(`${BASE}/auth/resend-code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }).then((res) => res.json()),
+
+  forgotPassword: (email: string) =>
+    fetch(`${BASE}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    }).then((res) => res.json()),
+
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    fetch(`${BASE}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code, newPassword }),
+    }).then((res) => res.json()),
+
   login: (data: LoginPayload) =>
     fetch(`${BASE}/auth/login`, {
       method: "POST",

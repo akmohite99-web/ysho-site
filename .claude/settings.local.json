@@ -9,7 +9,12 @@
       "Bash(curl -s -o /dev/null -w '%{http_code} %{url_effective}\\\\n' https://www.indiapost.gov.in/tracking)",
       "Bash(curl -s 'https://www.indiapost.gov.in/robots.txt')",
       "Bash(aws ec2:*)",
-      "Bash(chmod 400 ~/.ssh/ysho-key.pem)"
+      "Bash(chmod 400 ~/.ssh/ysho-key.pem)",
+      "Bash(npm run:*)",
+      "Bash(rsync -avz --delete -e 'ssh -i ~/.ssh/ysho-key.pem' /data/wsp/ysho-site/dist/ ec2-user@52.66.119.104:/home/ec2-user/ysho/dist/)",
+      "Bash(rsync -avz --exclude node_modules --exclude .env -e 'ssh -i ~/.ssh/ysho-key.pem' /data/wsp/ysho-site/server/ ec2-user@52.66.119.104:/home/ec2-user/ysho/server/)",
+      "Bash(ssh -i '~/.ssh/ysho-key.pem' ec2-user@52.66.119.104 ':*)",
+      "Bash(ssh -i ~/.ssh/ysho-key.pem ec2-user@52.66.119.104 \"grep -q SMTP_HOST /home/ec2-user/ysho/server/.env && echo 'SMTP already set' || echo 'SMTP not set'\")"
     ]
   }
 }
