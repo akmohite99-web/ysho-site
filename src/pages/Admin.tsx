@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package, Pencil, Check, X, Plus, Trash2, Tag, Truck } from "lucide-react";
+import { Users, ShoppingBag, LogOut, IndianRupee, TrendingUp, Package, Pencil, Check, X, Plus, Trash2, Tag, Truck, Sparkles, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
-import { adminApi, productApi, couponApi, Product, ProductVariant } from "@/lib/api";
+import { adminApi, productApi, couponApi, adApi, Product, ProductVariant } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import yshoLogo from "@/assets/ysho-logo.jpeg";
 
@@ -238,6 +238,66 @@ const Admin = () => {
     }
   };
 
+  // ── ad generator state ────────────────────────────────────────────────────
+  const [adForm, setAdForm] = useState({ productName: "", productId: "", platform: "Instagram", tone: "Promotional", context: "" });
+  const [adResult, setAdResult] = useState<{ headline: string; caption: string; hashtags: string[]; cta: string } | null>(null);
+  const [adLoading, setAdLoading] = useState(false);
+  const [adError, setAdError] = useState("");
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [adImage, setAdImage] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState("");
+  const [adImagePrompt, setAdImagePrompt] = useState("");
+
+  const generateAd = async () => {
+    if (!adForm.productName) { setAdError("Product name is required."); return; }
+    setAdError("");
+    setAdResult(null);
+    setAdLoading(true);
+    try {
+      const data = await adApi.generate(adForm);
+      if (data.success) setAdResult(data.adCopy);
+      else setAdError(data.message || "Generation failed. Please try again.");
+    } catch {
+      setAdError("Unable to connect. Please try again.");
+    } finally {
+      setAdLoading(false);
+    }
+  };
+
+  const generateImage = async () => {
+    if (!adForm.productName) { setImageError("Select a product first."); return; }
+    setImageError("");
+    setAdImage(null);
+    setImageLoading(true);
+    try {
+      const data = await adApi.generateImage({
+        productName: adForm.productName,
+        productId: adForm.productId || undefined,
+        platform: adForm.platform,
+        tone: adForm.tone,
+        context: adForm.context,
+        overridePrompt: adImagePrompt || undefined,
+      });
+      if (data.success && data.image) {
+        setAdImage(data.image);
+        if (data.prompt) setAdImagePrompt(data.prompt);
+      } else {
+        setImageError(data.message || "Image generation failed. Please try again.");
+      }
+    } catch {
+      setImageError("Unable to connect to server. Please try again.");
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
   // ── tracking handlers ──────────────────────────────────────────────────────
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
 
@@ -440,6 +500,7 @@ const Admin = () => {
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="products">Products</TabsTrigger>
             <TabsTrigger value="coupons">Coupons</TabsTrigger>
+            <TabsTrigger value="adcopy" className="gap-1.5"><Sparkles className="w-3.5 h-3.5" />Ad Copy</TabsTrigger>
           </TabsList>
 
           {/* Orders Tab */}
@@ -833,6 +894,179 @@ const Admin = () => {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          {/* Ad Copy Tab */}
+          <TabsContent value="adcopy">
+            <Card className="border-border/50">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Sparkles className="w-5 h-5 text-golden" />
+                  AI Ad Copy Generator
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {adError && <p className="text-sm text-destructive">{adError}</p>}
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Product */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Product</label>
+                    <select
+                      className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background"
+                      value={adForm.productId}
+                      onChange={e => {
+                        const selected = products.find(p => p._id === e.target.value);
+                        setAdForm(f => ({ ...f, productId: e.target.value, productName: selected?.name || "" }));
+                      }}
+                    >
+                      <option value="">— select or type below —</option>
+                      {products.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                    </select>
+                    <Input
+                      className="mt-2 text-sm"
+                      placeholder="Or type a custom product name"
+                      value={adForm.productId ? "" : adForm.productName}
+                      onChange={e => setAdForm(f => ({ ...f, productName: e.target.value, productId: "" }))}
+                    />
+                  </div>
+
+                  {/* Platform */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Platform</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["Facebook", "Instagram", "WhatsApp Status"].map(p => (
+                        <button
+                          key={p}
+                          onClick={() => setAdForm(f => ({ ...f, platform: p }))}
+                          className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${adForm.platform === p ? "bg-golden text-white border-golden" : "border-border text-muted-foreground hover:border-golden/50"}`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tone */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">Tone</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {["Informative", "Promotional", "Festive", "Storytelling"].map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setAdForm(f => ({ ...f, tone: t }))}
+                          className={`px-3 py-2 rounded-md text-xs font-medium border transition-colors ${adForm.tone === t ? "bg-golden text-white border-golden" : "border-border text-muted-foreground hover:border-golden/50"}`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Context */}
+                  <div>
+                    <label className="text-sm font-medium mb-1.5 block">
+                      Extra context <span className="font-normal text-muted-foreground">(optional)</span>
+                    </label>
+                    <Input
+                      placeholder="e.g. Diwali special, 10% off this week, new 250ml launch…"
+                      value={adForm.context}
+                      onChange={e => setAdForm(f => ({ ...f, context: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 flex-wrap">
+                  <Button variant="golden" onClick={generateAd} disabled={adLoading} className="gap-2">
+                    {adLoading
+                      ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Generating…</>
+                      : <><Sparkles className="w-4 h-4" />Generate Ad Copy</>}
+                  </Button>
+                  <Button variant="outline" onClick={generateImage} disabled={imageLoading} className="gap-2">
+                    {imageLoading
+                      ? <><span className="w-4 h-4 border-2 border-border border-t-transparent rounded-full animate-spin" />Generating image…</>
+                      : <><Sparkles className="w-4 h-4" />Generate Image</>}
+                  </Button>
+                </div>
+
+                {/* Image prompt */}
+                {adImagePrompt && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Image Prompt (editable)</label>
+                      <button onClick={() => navigator.clipboard.writeText(adImagePrompt)} className="text-xs text-warm-brown hover:underline">Copy</button>
+                    </div>
+                    <textarea
+                      className="w-full border border-border rounded-md px-3 py-2 text-sm bg-background resize-y min-h-[80px]"
+                      value={adImagePrompt}
+                      onChange={e => setAdImagePrompt(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {/* Generated image */}
+                {imageError && <p className="text-sm text-destructive">{imageError}</p>}
+                {adImage && (
+                  <div className="border border-border/40 rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-2 bg-muted/30">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Generated Image</span>
+                      <a href={adImage} download="ysho-ad.png" className="flex items-center gap-1 text-xs text-warm-brown hover:underline font-medium">
+                        <Copy className="w-3 h-3" />Download
+                      </a>
+                    </div>
+                    <img src={adImage} alt="Generated ad" className="w-full object-cover max-h-96" />
+                  </div>
+                )}
+
+                {/* Results */}
+                {adResult && (
+                  <div className="mt-6 space-y-4">
+                    <Separator />
+                    <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Generated Copy — {adForm.platform} · {adForm.tone}</p>
+
+                    {[
+                      { field: "headline", label: "Headline", value: adResult.headline },
+                      { field: "caption", label: "Caption", value: adResult.caption },
+                      { field: "cta", label: "Call to Action", value: adResult.cta },
+                    ].map(({ field, label, value }) => (
+                      <div key={field} className="border border-border/40 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</span>
+                          <button
+                            onClick={() => copyToClipboard(value, field)}
+                            className="flex items-center gap-1 text-xs text-warm-brown hover:underline"
+                          >
+                            <Copy className="w-3 h-3" />
+                            {copiedField === field ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                        <p className="text-sm">{value}</p>
+                      </div>
+                    ))}
+
+                    {/* Hashtags */}
+                    <div className="border border-border/40 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Hashtags</span>
+                        <button
+                          onClick={() => copyToClipboard(adResult.hashtags.map(h => `#${h}`).join(" "), "hashtags")}
+                          className="flex items-center gap-1 text-xs text-warm-brown hover:underline"
+                        >
+                          <Copy className="w-3 h-3" />
+                          {copiedField === "hashtags" ? "Copied!" : "Copy all"}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {adResult.hashtags.map((tag, i) => (
+                          <span key={i} className="text-xs bg-golden/10 text-warm-brown px-2 py-1 rounded-full font-medium">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </CardContent>

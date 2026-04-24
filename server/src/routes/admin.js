@@ -1,9 +1,44 @@
-const express = require('express');
+const express    = require('express');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+// const { GoogleGenAI } = require('@google/genai'); // reserved for future use (Imagen / Veo)
 const User    = require('../models/User');
 const Order   = require('../models/Order');
 const Product = require('../models/Product');
 const Coupon  = require('../models/Coupon');
 const { adminProtect } = require('../middleware/adminAuth');
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+const AD_SYSTEM_PROMPT = `You are an expert social media marketing copywriter for Ysho, a premium A2 Desi Cow Bilona Ghee brand from India.
+
+Brand facts:
+- 100% pure A2 desi cow milk, sourced ethically
+- Traditional Bilona hand-churning process — no machines
+- No preservatives, no additives, no artificial flavours
+- Rich in vitamins A, D, E, K and butyric acid
+- Supports digestion, immunity, and bone health
+- Premium packaging, suitable for gifting
+- Available in 250ml, 500ml, and 1000ml jars
+- Website: ysho.in | Email: care@ysho.in
+
+Platform guidelines:
+- Facebook: conversational, slightly longer caption (3-5 sentences), link-friendly
+- Instagram: visually evocative, emoji-friendly, 2-3 sentences, strong hashtag set (15-20 tags)
+- WhatsApp Status: very short, punchy, personal tone (1-2 sentences max)
+
+Tone options:
+- Informative: facts-first, educational, builds trust
+- Promotional: offer/discount-led, urgency, value-focused
+- Festive: warm, celebratory, ties ghee to Indian festivals and traditions
+- Storytelling: narrative, evokes nostalgia, connects to roots
+
+Always respond with valid JSON only — no markdown, no extra text. Format:
+{
+  "headline": "max 10 words, punchy",
+  "caption": "platform-appropriate body copy",
+  "hashtags": ["tag1", "tag2"],
+  "cta": "max 8 words call to action"
+}`;
 
 const router = express.Router();
 
@@ -175,6 +210,120 @@ router.delete('/coupons/:id', adminProtect, async (req, res, next) => {
     await Coupon.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (err) { next(err); }
+});
+
+// POST /api/admin/generate-ad — AI ad copy generator
+router.post('/generate-ad', adminProtect, async (req, res, next) => {
+  try {
+    const { productName, platform, tone, context } = req.body;
+    if (!productName || !platform || !tone) {
+      return res.status(400).json({ success: false, message: 'productName, platform, and tone are required.' });
+    }
+
+    const userPrompt = `Generate ad copy for:
+Product: ${productName}
+Platform: ${platform}
+Tone: ${tone}${context ? `\nExtra context / offer: ${context}` : ''}
+
+Return JSON only.`;
+
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-2.5-pro',
+      systemInstruction: AD_SYSTEM_PROMPT,
+      generationConfig: { responseMimeType: 'application/json' },
+    });
+
+    const result = await model.generateContent(userPrompt);
+    const raw = result.response.text().trim();
+    let adCopy;
+    try {
+      adCopy = JSON.parse(raw);
+    } catch {
+      return res.status(500).json({ success: false, message: 'Failed to parse AI response. Please try again.' });
+    }
+
+    res.json({ success: true, adCopy });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/admin/generate-ad-image — Gemini Vision context + Pollinations generation
+router.post('/generate-ad-image', adminProtect, async (req, res, next) => {
+  try {
+    const { productName, productId, platform, tone, context, overridePrompt } = req.body;
+    if (!productName) {
+      return res.status(400).json({ success: false, message: 'productName is required.' });
+    }
+
+    // Step 1: if a real product was selected, analyse its image with Gemini Vision
+    let visualDescription = '';
+    let productVariants = '';
+    let promptParts;
+
+    if (productId) {
+      const product = await Product.findById(productId).lean();
+      if (product) {
+        const activeVariants = (product.variants || []).filter(v => v.isActive);
+        if (activeVariants.length) {
+          productVariants = `sizes ${activeVariants.map(v => v.size).join(', ')}`;
+        }
+
+        if (product.image) {
+          try {
+            const imgRes = await fetch(product.image);
+            if (imgRes.ok) {
+              const buffer = await imgRes.arrayBuffer();
+              const base64 = Buffer.from(buffer).toString('base64');
+              const mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+
+              const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+              const visionResult = await visionModel.generateContent([
+                { inlineData: { data: base64, mimeType } },
+                'Describe this product image in 1-2 sentences for use in a text-to-image prompt: focus on packaging shape, colors, label style, and visual mood. Be concise and descriptive.',
+              ]);
+              visualDescription = visionResult.response.text().trim();
+            }
+          } catch {
+            // Vision step failed — continue with text-only prompt
+          }
+        }
+      }
+    }
+
+    // Step 2: build enriched prompt (skip if user provided an override)
+    promptParts = overridePrompt?.trim() || [
+      `professional advertisement photo, Ysho ${productName} premium Indian A2 desi cow Bilona ghee`,
+      visualDescription || 'glass jar with golden ghee, elegant label',
+      productVariants,
+      'traditional Indian home kitchen setting, rustic wooden surface, clay pot, warm golden hour lighting',
+      'photorealistic, high resolution, rich warm tones, premium product photography',
+      `${tone || 'warm'} mood`,
+      context || '',
+      'no text, no logos, no watermarks',
+    ].filter(Boolean).join(', ');
+
+    // Step 3: fetch image from Pollinations
+    const encodedPrompt = encodeURIComponent(promptParts);
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&model=flux&nologo=true&seed=${Date.now()}`;
+
+    const imgResponse = await fetch(pollinationsUrl);
+    if (!imgResponse.ok) {
+      return res.status(500).json({ success: false, message: 'Image generation failed. Please try again.' });
+    }
+
+    const imageBuffer = await imgResponse.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString('base64');
+    const mimeType = imgResponse.headers.get('content-type') || 'image/jpeg';
+
+    res.json({
+      success: true,
+      image: `data:${mimeType};base64,${base64Image}`,
+      prompt: promptParts,
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 module.exports = router;

@@ -218,6 +218,22 @@ export const productApi = {
     }).then((r) => r.json()),
 };
 
+export const adApi = {
+  generate: (data: { productName: string; platform: string; tone: string; context?: string }) =>
+    fetch(`${BASE}/admin/generate-ad`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+
+  generateImage: (data: { productName: string; productId?: string; platform: string; tone: string; context?: string; overridePrompt?: string }) =>
+    fetch(`${BASE}/admin/generate-ad-image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify(data),
+    }).then((r) => r.json()),
+};
+
 export const adminApi = {
   getUsers: () =>
     fetch(`${BASE}/admin/users`, { headers: { Authorization: `Bearer ${getToken()}` } }).then((r) => r.json()),
