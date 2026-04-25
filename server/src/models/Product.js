@@ -11,10 +11,11 @@ const variantSchema = new mongoose.Schema(
 
 const productSchema = new mongoose.Schema(
   {
-    name:     { type: String, required: true, trim: true },
-    image:    { type: String, default: '' },
-    isActive: { type: Boolean, default: true },
-    variants: { type: [variantSchema], default: [] },
+    name:        { type: String, required: true, trim: true },
+    description: { type: String, default: '' },
+    image:       { type: String, default: '' },
+    isActive:    { type: Boolean, default: true },
+    variants:    { type: [variantSchema], default: [] },
   },
   { timestamps: true, collection: 'products' }
 );

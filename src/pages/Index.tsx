@@ -14,16 +14,14 @@ import {
   Star,
   Leaf,
   Droplets,
-  LogOut,
-  ShoppingCart,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import SiteHeader from "@/components/SiteHeader";
 import { productApi, Product, ProductVariant } from "@/lib/api";
 import heroGhee from "@/assets/hero-ghee.jpg";
 import a2Cow from "@/assets/a2-cow.jpg";
 import bilonaProcess from "@/assets/bilona-process.jpg";
-import yshoLogo from "@/assets/ysho-logo.jpeg";
 import labelCenter from "@/assets/label-center.png";
 import labelInfo from "@/assets/label-info.png";
 import labelPait from "@/assets/label-pait.png";
@@ -39,11 +37,12 @@ const Index = () => {
   useEffect(() => {
     productApi.list().then((res) => {
       if (res.success && res.products.length > 0) {
-        const p = res.products[0];
-        setProduct(p);
-        const active = p.variants.filter((v: ProductVariant) => v.isActive);
-        // Default to 500ml if available, otherwise first active variant
-        setSelectedVariant(active.find((v: ProductVariant) => v.size === "500ml") ?? active[0] ?? null);
+        const ghee = res.products.find((p: Product) => p.isActive && p.name === "A2 Desi Cow Bilona Ghee") ?? res.products.find((p: Product) => p.isActive);
+        if (ghee) {
+          setProduct(ghee);
+          const active = ghee.variants.filter((v: ProductVariant) => v.isActive);
+          setSelectedVariant(active.find((v: ProductVariant) => v.size === "500ml") ?? active[0] ?? null);
+        }
       }
     }).catch(() => {});
   }, []);
@@ -63,62 +62,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <nav className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src={yshoLogo} alt="Ysho Essence of Nature Logo" className="h-12 w-auto rounded-full" />
-              <h1 className="text-2xl font-bold text-warm-brown">Ysho Essence of Nature</h1>
-            </div>
-            <div className="hidden md:flex items-center space-x-6">
-              <a href="#home" className="text-foreground hover:text-warm-brown transition-colors">Home</a>
-              <a href="#benefits" className="text-foreground hover:text-warm-brown transition-colors">Benefits</a>
-              <a href="#process" className="text-foreground hover:text-warm-brown transition-colors">Process</a>
-              <a href="#contact" className="text-foreground hover:text-warm-brown transition-colors">Contact</a>
-            </div>
-            <div className="flex items-center gap-3">
-              {/* Cart icon */}
-              <Button variant="ghost" size="sm" className="relative" asChild>
-                <Link to="/cart">
-                  <ShoppingCart className="w-5 h-5" />
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-golden text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {totalItems}
-                    </span>
-                  )}
-                </Link>
-              </Button>
-
-              {isAuthenticated ? (
-                <>
-                  <Link to="/profile" className="hidden sm:inline text-sm font-medium text-warm-brown hover:underline underline-offset-2">
-                    Hello, {user?.name.split(" ")[0]}
-                  </Link>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={logout}
-                    className="flex items-center gap-1"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="hidden sm:inline">Logout</span>
-                  </Button>
-                  <Button variant="golden" size="sm" onClick={handleOrderNow}>Order Now</Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to="/login">Login</Link>
-                  </Button>
-                  <Button variant="golden" size="sm" asChild>
-                    <Link to="/register">Register</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Hero Section */}
       <section id="home" className="relative overflow-hidden bg-gradient-to-br from-cream via-background to-golden/10">
@@ -223,71 +167,24 @@ const Index = () => {
               Discover the incredible health benefits and superior taste of traditional A2 Bilona Ghee
             </p>
           </div>
-
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              {
-                icon: <Heart className="w-8 h-8 text-warm-brown" />,
-                title: "Boosts Brain Function",
-                description: "Enhances cognitive abilities and supports mental clarity"
-              },
-              {
-                icon: <Heart className="w-8 h-8 text-warm-brown" />,
-                title: "Supports Heart Health",
-                description: "Promotes cardiovascular wellness naturally"
-              },
-              {
-                icon: <Sparkles className="w-8 h-8 text-warm-brown" />,
-                title: "Balances Hormones & Mind",
-                description: "Helps maintain hormonal equilibrium and mental balance"
-              },
-              {
-                icon: <Award className="w-8 h-8 text-warm-brown" />,
-                title: "Excellent for Children & Elderly",
-                description: "Provides essential nutrition for all ages"
-              },
-              {
-                icon: <Shield className="w-8 h-8 text-warm-brown" />,
-                title: "Strengthens Immunity",
-                description: "Fortifies your body's natural defense system"
-              },
-              {
-                icon: <Sparkles className="w-8 h-8 text-warm-brown" />,
-                title: "Improves Digestion",
-                description: "Aids in better digestive health and metabolism"
-              },
-              {
-                icon: <Leaf className="w-8 h-8 text-warm-brown" />,
-                title: "Enhances Skin Glow & Hair Strength",
-                description: "Nourishes skin and strengthens hair from within"
-              },
-              {
-                icon: <Sparkles className="w-8 h-8 text-warm-brown" />,
-                title: "Boosts Metabolism & Weight Loss",
-                description: "Supports healthy weight management naturally"
-              },
-              {
-                icon: <Shield className="w-8 h-8 text-warm-brown" />,
-                title: "Strengthens Bones & Joints",
-                description: "Promotes strong bones and flexible joints"
-              },
-              {
-                icon: <Droplets className="w-8 h-8 text-warm-brown" />,
-                title: "Detoxifies & Heals Tissues",
-                description: "Natural detoxification and tissue healing properties"
-              }
+              { icon: <Heart className="w-8 h-8 text-warm-brown" />,    title: "Boosts Brain Function",          description: "Enhances cognitive abilities and supports mental clarity" },
+              { icon: <Heart className="w-8 h-8 text-warm-brown" />,    title: "Supports Heart Health",          description: "Promotes cardiovascular wellness naturally" },
+              { icon: <Sparkles className="w-8 h-8 text-warm-brown" />, title: "Balances Hormones & Mind",       description: "Helps maintain hormonal equilibrium and mental balance" },
+              { icon: <Award className="w-8 h-8 text-warm-brown" />,    title: "Excellent for Children & Elderly", description: "Provides essential nutrition for all ages" },
+              { icon: <Shield className="w-8 h-8 text-warm-brown" />,   title: "Strengthens Immunity",           description: "Fortifies your body's natural defense system" },
+              { icon: <Sparkles className="w-8 h-8 text-warm-brown" />, title: "Improves Digestion",             description: "Aids in better digestive health and metabolism" },
+              { icon: <Leaf className="w-8 h-8 text-warm-brown" />,     title: "Enhances Skin Glow & Hair Strength", description: "Nourishes skin and strengthens hair from within" },
+              { icon: <Sparkles className="w-8 h-8 text-warm-brown" />, title: "Boosts Metabolism & Weight Loss", description: "Supports healthy weight management naturally" },
+              { icon: <Shield className="w-8 h-8 text-warm-brown" />,   title: "Strengthens Bones & Joints",    description: "Promotes strong bones and flexible joints" },
+              { icon: <Droplets className="w-8 h-8 text-warm-brown" />, title: "Detoxifies & Heals Tissues",    description: "Natural detoxification and tissue healing properties" },
             ].map((benefit, index) => (
               <Card key={index} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-2 border-border/50 hover:border-golden/30">
                 <CardContent className="p-8 text-center">
-                  <div className="mb-4 flex justify-center group-hover:animate-float">
-                    {benefit.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3 text-foreground group-hover:text-warm-brown transition-colors">
-                    {benefit.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {benefit.description}
-                  </p>
+                  <div className="mb-4 flex justify-center group-hover:animate-float">{benefit.icon}</div>
+                  <h3 className="text-xl font-semibold mb-3 text-foreground group-hover:text-warm-brown transition-colors">{benefit.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">{benefit.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -305,71 +202,41 @@ const Index = () => {
             </Badge>
             <h2 className="text-4xl font-bold mb-4">Our Sacred A2 Bilona Method</h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              We follow the ancient bilona churning process to create the purest, most nutritious ghee, 
+              We follow the ancient bilona churning process to create the purest, most nutritious ghee,
               just as our ancestors did for centuries.
             </p>
           </div>
-
           <div className="grid lg:grid-cols-3 gap-12">
             <div className="text-center group">
               <div className="relative mb-8 overflow-hidden rounded-2xl">
-                <img 
-                  src={a2Cow} 
-                  alt="A2 dairy cows in green pasture"
-                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+                <img src={a2Cow} alt="A2 dairy cows in green pasture" className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-warm-brown/30 to-transparent" />
               </div>
-              <div className="bg-golden w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-warm-brown font-bold text-xl">
-                1
-              </div>
+              <div className="bg-golden w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-warm-brown font-bold text-xl">1</div>
               <h3 className="text-2xl font-semibold mb-4">Pure A2 Milk</h3>
-              <p className="text-muted-foreground leading-relaxed mb-4">
-                Sourced from indigenous grass-fed desi cows that produce pure A2 protein milk, 
-                naturally rich in nutrients and easier to digest.
-              </p>
+              <p className="text-muted-foreground leading-relaxed mb-4">Sourced from indigenous grass-fed desi cows that produce pure A2 protein milk, naturally rich in nutrients and easier to digest.</p>
               <div className="bg-warm-brown/10 border border-warm-brown/20 rounded-lg p-4">
                 <p className="text-sm font-semibold text-warm-brown mb-2">Ingredients:</p>
                 <p className="text-sm text-foreground">A2 Cow milk, Natural Yoghurt</p>
               </div>
             </div>
-
             <div className="text-center group">
               <div className="relative mb-8 overflow-hidden rounded-2xl">
-                <img 
-                  src={bilonaProcess} 
-                  alt="Traditional bilona churning process"
-                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+                <img src={bilonaProcess} alt="Traditional bilona churning process" className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-warm-brown/30 to-transparent" />
               </div>
-              <div className="bg-golden w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-warm-brown font-bold text-xl">
-                2
-              </div>
+              <div className="bg-golden w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-warm-brown font-bold text-xl">2</div>
               <h3 className="text-2xl font-semibold mb-4">Traditional Churning</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                Using the ancient bilona method, we hand-churn curd in traditional clay pots 
-                to separate butter while preserving all natural nutrients.
-              </p>
+              <p className="text-muted-foreground leading-relaxed">Using the ancient bilona method, we hand-churn curd in traditional clay pots to separate butter while preserving all natural nutrients.</p>
             </div>
-
             <div className="text-center group">
               <div className="relative mb-8 overflow-hidden rounded-2xl">
-                <img 
-                  src={heroGhee} 
-                  alt="Golden ghee being prepared"
-                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+                <img src={heroGhee} alt="Golden ghee being prepared" className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-warm-brown/30 to-transparent" />
               </div>
-              <div className="bg-golden w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-warm-brown font-bold text-xl">
-                3
-              </div>
+              <div className="bg-golden w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-warm-brown font-bold text-xl">3</div>
               <h3 className="text-2xl font-semibold mb-4">Pure Golden Ghee</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                The butter is slowly heated to create pure, aromatic ghee with its distinctive 
-                golden color and rich, nutty flavor that our customers love.
-              </p>
+              <p className="text-muted-foreground leading-relaxed">The butter is slowly heated to create pure, aromatic ghee with its distinctive golden color and rich, nutty flavor that our customers love.</p>
             </div>
           </div>
         </div>

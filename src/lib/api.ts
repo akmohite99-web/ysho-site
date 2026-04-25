@@ -146,6 +146,7 @@ export interface ProductVariant {
 export interface Product {
   _id: string;
   name: string;
+  description: string;
   image: string;
   variants: ProductVariant[];
   isActive: boolean;
@@ -190,7 +191,7 @@ export const productApi = {
   adminList: () =>
     fetch(`${BASE}/admin/products`, { headers: authHeader() }).then((r) => r.json()),
 
-  create: (data: { name: string; variant: string; price: number; image?: string }) =>
+  create: (data: { name: string; description?: string; variants?: { size: string; price: number; isActive: boolean }[]; image?: string }) =>
     fetch(`${BASE}/admin/products`, {
       method: "POST",
       headers: jsonHeaders(),

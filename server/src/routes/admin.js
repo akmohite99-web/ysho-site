@@ -91,11 +91,11 @@ router.get('/products', adminProtect, async (req, res, next) => {
 // POST /api/admin/products — create product with variants
 router.post('/products', adminProtect, async (req, res, next) => {
   try {
-    const { name, image, variants } = req.body;
+    const { name, description, image, variants } = req.body;
     if (!name || !Array.isArray(variants) || variants.length === 0) {
       return res.status(400).json({ success: false, message: 'name and at least one variant are required.' });
     }
-    const product = await Product.create({ name, image, variants });
+    const product = await Product.create({ name, description, image, variants });
     res.status(201).json({ success: true, product });
   } catch (err) { next(err); }
 });
@@ -103,12 +103,13 @@ router.post('/products', adminProtect, async (req, res, next) => {
 // PUT /api/admin/products/:id — update product name / image / isActive / full variants array
 router.put('/products/:id', adminProtect, async (req, res, next) => {
   try {
-    const { name, image, isActive, variants } = req.body;
+    const { name, description, image, isActive, variants } = req.body;
     const update = {};
-    if (name     != null) update.name     = name;
-    if (image    != null) update.image    = image;
-    if (isActive != null) update.isActive = isActive;
-    if (variants != null) update.variants = variants;
+    if (name        != null) update.name        = name;
+    if (description != null) update.description = description;
+    if (image       != null) update.image       = image;
+    if (isActive    != null) update.isActive    = isActive;
+    if (variants    != null) update.variants    = variants;
 
     const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });

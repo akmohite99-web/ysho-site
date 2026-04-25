@@ -126,7 +126,7 @@ const Admin = () => {
   const [editName, setEditName]           = useState("");
   const [editImage, setEditImage]         = useState("");
   const [editPrices, setEditPrices]       = useState<Record<string, string>>({});  // size → price string
-  const [newProduct, setNewProduct]       = useState({ name: "", image: "" });
+  const [newProduct, setNewProduct]       = useState({ name: "", description: "", image: "" });
   const [showAddForm, setShowAddForm]     = useState(false);
   const [productError, setProductError]   = useState("");
 
@@ -153,11 +153,6 @@ const Admin = () => {
   }, []);
 
   // ── product handlers ───────────────────────────────────────────────────────
-  const DEFAULT_VARIANTS = [
-    { size: "250ml",  price: 0, isActive: true },
-    { size: "500ml",  price: 0, isActive: true },
-    { size: "1000ml", price: 0, isActive: true },
-  ];
 
   const startEdit = (p: Product) => {
     setEditingId(p._id);
@@ -206,24 +201,23 @@ const Admin = () => {
     if (res.success) setProducts((prev) => prev.filter((p) => p._id !== id));
   };
 
-  const [newVariantPrices, setNewVariantPrices] = useState<Record<string, string>>({ "250ml": "", "500ml": "", "1000ml": "" });
+  const [newVariants, setNewVariants] = useState<{ size: string; price: string }[]>([{ size: "", price: "" }]);
 
   const addProduct = async () => {
     if (!newProduct.name) { setProductError("Product name is required."); return; }
-    const variants = DEFAULT_VARIANTS.map((v) => ({
-      size: v.size,
-      price: Number(newVariantPrices[v.size] || 0),
-      isActive: true,
-    }));
+    const variants = newVariants
+      .filter(v => v.size.trim())
+      .map(v => ({ size: v.size.trim(), price: Number(v.price) || 0, isActive: true }));
+    if (variants.length === 0) { setProductError("Add at least one variant."); return; }
     if (variants.some((v) => isNaN(v.price) || v.price < 0)) {
       setProductError("All prices must be valid numbers.");
       return;
     }
-    const res = await productApi.create({ name: newProduct.name, image: newProduct.image, variants });
+    const res = await productApi.create({ name: newProduct.name, description: newProduct.description, image: newProduct.image, variants });
     if (res.success) {
       setProducts((prev) => [...prev, res.product]);
-      setNewProduct({ name: "", image: "" });
-      setNewVariantPrices({ "250ml": "", "500ml": "", "1000ml": "" });
+      setNewProduct({ name: "", description: "", image: "" });
+      setNewVariants([{ size: "", price: "" }]);
       setShowAddForm(false);
       setProductError("");
     } else {
@@ -664,38 +658,10 @@ const Admin = () => {
                   <Package className="w-5 h-5 text-golden" />
                   Products
                 </CardTitle>
-                <Button size="sm" variant="golden" className="gap-1.5" onClick={() => { setShowAddForm((v) => !v); setProductError(""); }}>
-                  <Plus className="w-4 h-4" />
-                  Add Product
-                </Button>
               </CardHeader>
               <CardContent>
                 {productError && (
                   <p className="text-sm text-destructive mb-3">{productError}</p>
-                )}
-
-                {/* Add form */}
-                {showAddForm && (
-                  <div className="mb-4 p-4 border border-border/40 rounded-lg space-y-3">
-                    <p className="text-sm font-medium">New Product</p>
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <Input placeholder="Product name" value={newProduct.name} onChange={(e) => setNewProduct((p) => ({ ...p, name: e.target.value }))} />
-                      <Input placeholder="Image URL (optional)" value={newProduct.image} onChange={(e) => setNewProduct((p) => ({ ...p, image: e.target.value }))} />
-                    </div>
-                    <p className="text-xs text-muted-foreground font-medium">Variant Prices (₹)</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {["250ml", "500ml", "1000ml"].map((size) => (
-                        <div key={size}>
-                          <label className="text-xs text-muted-foreground mb-1 block">{size}</label>
-                          <Input type="number" placeholder="₹" value={newVariantPrices[size]} onChange={(e) => setNewVariantPrices((p) => ({ ...p, [size]: e.target.value }))} />
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="golden" onClick={addProduct}><Check className="w-4 h-4 mr-1" /> Save</Button>
-                      <Button size="sm" variant="ghost" onClick={() => { setShowAddForm(false); setProductError(""); }}><X className="w-4 h-4 mr-1" /> Cancel</Button>
-                    </div>
-                  </div>
                 )}
 
                 {loadingProducts ? (
@@ -703,7 +669,7 @@ const Admin = () => {
                     <div className="w-8 h-8 rounded-full border-4 border-golden border-t-transparent animate-spin" />
                   </div>
                 ) : products.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-12">No products yet. Add one above.</p>
+                  <p className="text-center text-muted-foreground py-12">No products found.</p>
                 ) : (
                   <div className="space-y-4">
                     {products.map((p) => (
@@ -712,14 +678,7 @@ const Admin = () => {
                         <div className="flex items-center justify-between gap-3 mb-3">
                           <div className="flex items-center gap-3">
                             {p.image && <img src={p.image} alt={p.name} className="w-10 h-10 object-contain rounded border border-border/30 bg-cream" />}
-                            {editingId === p._id ? (
-                              <div className="flex gap-2">
-                                <Input className="h-8 text-sm w-48" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Product name" />
-                                <Input className="h-8 text-sm w-48" value={editImage} onChange={(e) => setEditImage(e.target.value)} placeholder="Image URL" />
-                              </div>
-                            ) : (
-                              <p className="font-semibold">{p.name}</p>
-                            )}
+                            <p className="font-semibold">{p.name}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <Badge
@@ -734,15 +693,12 @@ const Admin = () => {
                                 <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={cancelEdit}><X className="w-3 h-3 mr-1" />Cancel</Button>
                               </>
                             ) : (
-                              <>
-                                <Button size="sm" variant="ghost" onClick={() => startEdit(p)}><Pencil className="w-4 h-4" /></Button>
-                                <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => deleteProduct(p._id)}><Trash2 className="w-4 h-4" /></Button>
-                              </>
+                              <Button size="sm" variant="ghost" onClick={() => startEdit(p)}><Pencil className="w-4 h-4" /></Button>
                             )}
                           </div>
                         </div>
 
-                        {/* Variant prices table */}
+                        {/* Variant prices */}
                         <div className="grid grid-cols-3 gap-2">
                           {p.variants.map((v) => (
                             <div key={v.size} className={`border rounded-lg p-3 ${v.isActive ? "border-border/40" : "border-border/20 bg-muted/30"}`}>
