@@ -15,7 +15,6 @@ import {
   Phone,
   Mail,
   MapPin,
-  ArrowLeft,
   CheckCircle2,
   FlaskConical,
 } from "lucide-react";
@@ -86,14 +85,6 @@ const ShatDhautaGhrita = () => {
     <div className="min-h-screen bg-background">
       <SiteHeader />
 
-      {/* Breadcrumb */}
-      <div className="container mx-auto px-4 py-3">
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-warm-brown transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Home
-        </Link>
-      </div>
-
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-cream via-background to-golden/10 py-20">
         <div className="container mx-auto px-4">
@@ -124,7 +115,7 @@ const ShatDhautaGhrita = () => {
                 Ayurvedic Skincare
               </Badge>
               <h1 className="text-4xl lg:text-5xl font-bold text-warm-brown mb-2 leading-tight">
-                Shat Dhauta<br />Ghrita
+                Ysho Shat Dhauta<br />Ghrita
               </h1>
               <p className="text-xl text-muted-foreground font-medium mb-4">
                 शत धौत घृत — 100-Times Washed Ghee Cream
